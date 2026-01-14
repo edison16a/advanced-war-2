@@ -4,7 +4,7 @@ A lightweight, browser-based remake inspired by classic turn-based strategy game
 
 ## Features
 - **2-player hotseat** turns (Player 1 vs Player 2)
-- Runs locally — **no install, no server**
+- Runs locally
 - Simple controls and fast restart loop
 - Clean, minimal UI for quick gameplay
 
