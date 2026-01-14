@@ -1,0 +1,2064 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Advanced Wars</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#111a33;
+      --panel2:#0f1730;
+      --text:#e8eeff;
+      --muted:#a9b6e6;
+      --accent:#5dd6ff;
+      --good:#74ff8a;
+      --warn:#ffd166;
+      --bad:#ff5d7a;
+      --grid:#1c2b57;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    #wrap{display:flex;align-items:stretch;justify-content:center;gap:12px;padding:12px;box-sizing:border-box;height:100%}
+    #gameCol{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+    canvas{background:#050814;border:1px solid #23346b;border-radius:10px;image-rendering:pixelated}
+    #panel{width:360px;max-width:38vw;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #23346b;border-radius:14px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{
+      background:#152252;border:1px solid #2a3f86;color:var(--text);
+      padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:600
+    }
+    .btn:hover{border-color:#4a67d6}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:#1b2c69;border-color:#4a67d6}
+    .btn.good{background:#134d2a;border-color:#2bd37e}
+    .btn.bad{background:#5a1630;border-color:#ff5d7a}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .tag{padding:2px 8px;border:1px solid #2a3f86;border-radius:999px;font-size:12px;color:var(--muted)}
+    .big{font-size:18px;font-weight:800}
+    .muted{color:var(--muted)}
+    #log{flex:1;overflow:auto;background:#0a1026;border:1px solid #23346b;border-radius:12px;padding:10px;line-height:1.25}
+    #log .line{margin:0 0 8px 0}
+    #log .p1{color:#7cc6ff}
+    #log .p2{color:#ff8aa7}
+    #help{display:none}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13px}
+    .sep{height:1px;background:#203368;margin:6px 0}
+    .list{display:flex;flex-direction:column;gap:6px}
+    .shopItem{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      background:#0b1433;border:1px solid #23346b;border-radius:12px;padding:10px 12px
+    }
+    .shopItem .name{font-weight:700}
+    .shopItem .meta{font-size:12px;color:var(--muted);line-height:1.35}
+    .pill{
+      padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid #2a3f86;color:var(--text)
+    }
+    .pill.good{border-color:#2bd37e;color:#a9ffd1}
+    .pill.warn{border-color:#ffd166;color:#ffe7a8}
+    .pill.bad{border-color:#ff5d7a;color:#ffc1cd}
+    /* NEW: Key/Legend panel */
+    #keyBox{
+      display:none;
+      background:#0a1026;
+      border:1px solid #23346b;
+      border-radius:12px;
+      padding:10px;
+    }
+    .legendRow{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:6px 8px;border:1px solid #23346b;border-radius:10px;background:#08102a
+    }
+    .swatch{
+      width:18px;height:18px;border-radius:4px;border:1px solid #23346b;flex:0 0 auto;
+    }
+    .abbr{
+      font-weight:800;letter-spacing:.5px;font-size:12px;
+      padding:2px 6px;border-radius:8px;border:1px solid #23346b;background:#0b1433
+    }
+    /* Panels under keybinds */
+    #lowerPanels{width:100%;max-width:960px;display:flex;flex-direction:column;gap:12px}
+    .floatingPanel{
+      display:none;
+      background:#0a1026;
+      border:1px solid #23346b;
+      border-radius:14px;
+      padding:12px;
+      box-sizing:border-box;
+    }
+    #shopBox{display:block}
+    .floatingPanel .headerRow{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+    .shopStats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+    .shopStats .pill{font-size:12px}
+    .shopGrid{display:flex;flex-direction:column;gap:8px}
+    #selKv{display:none}
+    #selStats{display:flex;flex-direction:column;gap:6px}
+    .selRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .selRow.center{justify-content:center}
+    .selImgRow{display:flex;justify-content:center}
+    .thumb{
+      width:80px;height:80px;border-radius:10px;
+      border:1px solid #23346b;background:#0b1433;
+      display:flex;align-items:center;justify-content:center;
+      box-sizing:border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="gameCol">
+      <canvas id="c" width="960" height="720"></canvas>
+      <div id="help">
+        <div class="row">
+          <span class="tag">Mouse</span><span>Select unit/building/tile, move, attack</span>
+        </div>
+        <div class="row">
+          <span class="tag">Right Click</span><span>Cancel selection</span>
+        </div>
+        <div class="row">
+          <span class="tag">E</span><span>End Turn</span>
+          <span class="tag">B</span><span>Open Shop (on your Base)</span>
+          <span class="tag">K</span><span>Open Key/Legend</span>
+          <span class="tag">Esc</span><span>Close Shop / Close Key / Cancel</span>
+        </div>
+      </div>
+
+      <div id="lowerPanels">
+        <div id="shopBox" class="floatingPanel">
+          <div class="headerRow">
+            <div>
+              <div class="big" style="font-size:16px">Base Shop</div>
+              <div class="muted" id="shopHint">Build units on your base.</div>
+            </div>
+            <button class="btn" id="closeShopBtn">Close (Esc)</button>
+          </div>
+          <div class="sep"></div>
+          <div class="shopGrid" id="shopList"></div>
+        </div>
+
+        <div id="keyBox" class="floatingPanel">
+          <div class="headerRow">
+            <div>
+              <div class="big" style="font-size:16px">Key / Legend</div>
+              <div class="muted">Terrain and unit abbreviations (press K to toggle)</div>
+            </div>
+            <button class="btn" id="closeKeyBtn">Close (Esc)</button>
+          </div>
+          <div class="sep"></div>
+
+          <div class="big" style="font-size:14px">Terrain</div>
+          <div class="list" id="terrainLegend"></div>
+
+          <div class="sep"></div>
+
+          <div class="big" style="font-size:14px">Units</div>
+          <div class="list" id="unitLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel">
+      <div class="row" style="justify-content:center">
+        <div style="display:flex;justify-content:center;width:100%;">
+          <img src="logo.png" alt="Game Logo" style="max-width:240px; height:auto; display:block;">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="kv" id="stats">
+        <div>Current Player</div><div id="curPlayer" class="pill">—</div>
+        <div>Day</div><div id="day">1</div>
+        <div>Player 1 Funds</div><div id="p1Funds">0</div>
+        <div>Player 2 Funds</div><div id="p2Funds">0</div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <button class="btn primary" id="endTurnBtn">End Turn (E)</button>
+        <button class="btn" id="newBtn">New Game</button>
+        <button class="btn bad" id="resetBtn" title="Hard reset the match">Reset</button>
+        <button class="btn" id="openShopBtn" title="Open your shop (random owned base)">Open Shop (B)</button>
+        <button class="btn" id="keyBtn" title="Open unit/terrain legend">Key (K)</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <div id="selectionBox">
+        <div class="big" style="font-size:16px">Tile/Troop Info</div>
+        <div class="muted" id="selHint">Click a unit, building, or tile.</div>
+        <br>
+        
+        <div class="kv" id="selKv"></div>
+        
+        <div class="shopStats" id="selStats"></div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="big" style="font-size:16px">Battle Log</div>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <script>
+  "use strict";
+
+  /***********************************************************************
+   * TurnGrid Tactics
+   ***********************************************************************/
+
+  /***********************************************************************
+   * Constants & Utilities
+   ***********************************************************************/
+  const TILE = 48;
+  const GRID_W = 16;
+  const GRID_H = 12;
+
+  const CANVAS_W = GRID_W * TILE;
+  const CANVAS_H = GRID_H * TILE;
+
+  const COLORS = {
+    bg: "#050814",
+    grid: "#1c2b57",
+
+    // players
+    p1: "#63baff",
+    p2: "#ff6f90",
+    p1Dark: "#1f4f8a",
+    p2Dark: "#8a1f3f",
+
+    // highlights
+    move: "rgba(93, 214, 255, 0.22)",
+    moveEdge: "rgba(93, 214, 255, 0.75)",
+    atk: "rgba(255, 93, 122, 0.20)",
+    atkEdge: "rgba(255, 93, 122, 0.75)",
+    select: "rgba(116, 255, 138, 0.20)",
+    selectEdge: "rgba(116, 255, 138, 0.75)",
+    danger: "rgba(255, 209, 102, 0.20)",
+    dangerEdge: "rgba(255, 209, 102, 0.75)"
+  };
+
+  const SPRITE_SOURCES = {
+    INF: { 1:["blue_inf.png","blue_inf2.png"], 2:["red_inf.png","red_inf2.png"] },
+    TANK:{ 1:["blue_tank.png"], 2:["red_tank.png"] },
+    MDT: { 1:["blue_mdtank.png"], 2:["red_mdtank.png"] },
+    ART: { 1:["blue_art.png"], 2:["red_art.png"] },
+    RKT: { 1:["blue_rocket.png"], 2:["red_rocket.png"] }
+  };
+  const SPRITE_IMAGES = {};
+
+  const BUILDING_SOURCES = {
+    HQ:   { 1:"blue_hq.png", 2:"red_hq.png", 0:"building.png" },
+    BASE: { 1:"blue_base.png", 2:"red_base.png", 0:"building.png" },
+    CITY: { 0:"building.png" }
+  };
+  const BUILDING_IMAGES = {};
+
+  // NEW: deterministic hash helpers (avoid animated noise)
+  function hash2(x, y, seed=1337){
+    let n = (x * 374761393 + y * 668265263 + seed * 1442695040888963407n) % 2147483647;
+    // Above used BigInt; normalize:
+    n = Number((BigInt(x) * 374761393n + BigInt(y) * 668265263n + BigInt(seed) * 1013904223n) & 0x7fffffffn);
+    return n;
+  }
+  function hashFloat01(x,y,seed=1337){
+    const h = hash2(x,y,seed) % 100000;
+    return h / 100000;
+  }
+  function hashInt(x,y,seed,mod){
+    return Math.floor(hashFloat01(x,y,seed) * mod);
+  }
+
+  const TERRAIN = {
+    PLAINS:  { id:"PLAINS",  name:"Grass",   moveCost:{foot:1,tread:1}, def:0, color:"#143a2a" },
+    FOREST:  { id:"FOREST",  name:"Forest",  moveCost:{foot:1,tread:2}, def:1, color:"#0f2f21" },
+    MOUNTAIN:{ id:"MOUNTAIN",name:"Mountain",moveCost:{foot:2,tread:99},def:2, color:"#2a2b35" },
+    ROAD:    { id:"ROAD",    name:"Road",    moveCost:{foot:1,tread:1}, def:0, color:"#2a2f3a" },
+    WATER:   { id:"WATER",   name:"Water",   moveCost:{foot:99,tread:99},def:0, color:"#0a2542" }
+  };
+
+  const BUILDING = {
+    CITY: { id:"CITY", name:"City", income:1000, def:1 },
+    BASE: { id:"BASE", name:"Base", income:1000, def:1 },
+    HQ:   { id:"HQ",   name:"HQ",   income:1000, def:3 }
+  };
+
+  // Unit definitions
+  const UNIT_DEF = {
+    INF: {
+      id:"INF", name:"Infantry", abbr:"INF",
+      cost: 1000,
+      maxHP: 10,
+      move: 3,
+      movementType: "foot",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: true,
+      // Approximate Advance Wars-style values (scaled to 10hp system)
+      baseAtk: { INF: 6, TANK: 1, MDT: 1, ART: 2, RKT: 2 },
+      armor: 0
+    },
+
+    // Tank #1 (existing)
+    TANK: {
+      id:"TANK", name:"Tank", abbr:"TNK",
+      cost: 7000,
+      maxHP: 10,
+      move: 6,
+      movementType: "tread",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: { INF: 7, TANK: 5, MDT: 3, ART: 6, RKT: 6 },
+      armor: 1
+    },
+
+    // NEW: Tank #2 (heavier)
+    MDT: {
+      id:"MDT", name:"Md Tank", abbr:"MDT",
+      cost: 12000,
+      maxHP: 10,
+      move: 5,
+      movementType: "tread",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: { INF: 9, TANK: 8, MDT: 6, ART: 8, RKT: 8 },
+      armor: 2
+    },
+
+    // Artillery (existing)
+    ART: {
+      id:"ART", name:"Artillery", abbr:"ART",
+      cost: 6000,
+      maxHP: 10,
+      move: 5,
+      movementType: "tread",
+      rangeMin: 2, rangeMax: 3,
+      canCapture: false,
+      baseAtk: { INF: 8, TANK: 7, MDT: 5, ART: 7, RKT: 7 },
+      armor: 0,
+      indirect: true
+    },
+
+    // NEW: Rockets (longer-range indirect)
+    RKT: {
+      id:"RKT", name:"Rockets", abbr:"RKT",
+      cost: 15000,
+      maxHP: 10,
+      move: 4,
+      movementType: "tread",
+      rangeMin: 3, rangeMax: 5,
+      canCapture: false,
+      baseAtk: { INF: 9, TANK: 8, MDT: 7, ART: 8, RKT: 7 },
+      armor: 0,
+      indirect: true
+    }
+  };
+
+  const PLAYERS = [
+    { id:1, name:"Player 1", color:COLORS.p1, dark:COLORS.p1Dark },
+    { id:2, name:"Player 2", color:COLORS.p2, dark:COLORS.p2Dark }
+  ];
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function inBounds(x,y){ return x>=0 && y>=0 && x<GRID_W && y<GRID_H; }
+  function key(x,y){ return x + "," + y; }
+  function parseKey(k){ const [x,y]=k.split(",").map(Number); return {x,y}; }
+  function manhattan(a,b){ return Math.abs(a.x-b.x)+Math.abs(a.y-b.y); }
+  function randInt(n){ return Math.floor(Math.random()*n); }
+  function randBetween(min,max){ return min + randInt(max - min + 1); }
+
+  /***********************************************************************
+   * DOM handles
+   ***********************************************************************/
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+
+  const elCurPlayer = document.getElementById("curPlayer");
+  const elDay = document.getElementById("day");
+  const elP1Funds = document.getElementById("p1Funds");
+  const elP2Funds = document.getElementById("p2Funds");
+
+  const endTurnBtn = document.getElementById("endTurnBtn");
+  const newBtn = document.getElementById("newBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const openShopBtn = document.getElementById("openShopBtn");
+
+  const elSelHint = document.getElementById("selHint");
+  const elSelKv = document.getElementById("selKv");
+  const elSelStats = document.getElementById("selStats");
+
+  const shopBox = document.getElementById("shopBox");
+  const shopList = document.getElementById("shopList");
+  const closeShopBtn = document.getElementById("closeShopBtn");
+  const shopHint = document.getElementById("shopHint");
+
+  const keyBtn = document.getElementById("keyBtn");
+  const keyBox = document.getElementById("keyBox");
+  const closeKeyBtn = document.getElementById("closeKeyBtn");
+  const terrainLegend = document.getElementById("terrainLegend");
+  const unitLegend = document.getElementById("unitLegend");
+
+  const logBox = document.getElementById("log");
+  const helpBox = document.getElementById("help");
+  const lowerPanels = document.getElementById("lowerPanels");
+
+  /***********************************************************************
+   * Game State
+   ***********************************************************************/
+  const Game = {
+    day: 1,
+    currentPlayer: 1,
+    funds: { 1: 5000, 2: 5000 },
+
+    terrain: [],
+    buildings: [],
+
+    units: [],
+
+    sel: null,              // { type:"unit"/"building"/"tile", ... }
+    phase: "IDLE",          // IDLE | MOVING | ATTACKING | SHOP
+    moveMap: null,
+    moveTiles: new Set(),
+    path: [],
+    atkTiles: new Set(),
+
+    hovered: { x:-1, y:-1 },
+    gameOver: false
+  };
+
+  /***********************************************************************
+   * Entities
+   ***********************************************************************/
+  let UNIT_ID_SEQ = 1;
+
+  function makeUnit(typeId, owner, x, y){
+    const def = UNIT_DEF[typeId];
+    const spriteList = getSpriteList(typeId, owner);
+    const spriteIdx = typeId==="INF" && spriteList.length>1 ? randInt(spriteList.length) : 0;
+    return {
+      uid: UNIT_ID_SEQ++,
+      typeId,
+      def,
+      owner,
+      x, y,
+      hp: def.maxHP,
+      moved: false,
+      acted: false,
+      spriteIdx
+    };
+  }
+
+  function unitAt(x,y){
+    for(const u of Game.units){
+      if(u.x===x && u.y===y) return u;
+    }
+    return null;
+  }
+
+  function buildingAt(x,y){
+    if(!inBounds(x,y)) return null;
+    return Game.buildings[y][x];
+  }
+
+  function terrainAt(x,y){
+    if(!inBounds(x,y)) return TERRAIN.WATER;
+    return Game.terrain[y][x];
+  }
+
+  function getSpriteList(typeId, ownerId){
+    const byType = SPRITE_IMAGES[typeId];
+    if(!byType) return [];
+    return byType[ownerId] || [];
+  }
+
+  function getBuildingSprite(kindId, ownerId){
+    const byKind = BUILDING_IMAGES[kindId];
+    if(!byKind) return null;
+    const key = (ownerId && byKind[ownerId]) ? ownerId : 0;
+    return byKind[key] || null;
+  }
+
+  function makeBuildingNode(kindId, ownerId, size){
+    const img = document.createElement("img");
+    const sprite = getBuildingSprite(kindId, ownerId);
+    if(sprite) img.src = sprite.src;
+    img.width = size;
+    img.height = size;
+    img.className = "thumb";
+    img.style.objectFit = "contain";
+    img.style.background = "#0b1433";
+    img.style.imageRendering = "pixelated";
+    return img;
+  }
+
+  function makeTerrainNode(terrain, size){
+    const div = document.createElement("div");
+    div.className = "thumb";
+    div.style.width = `${size}px`;
+    div.style.height = `${size}px`;
+    div.style.background = terrain.color;
+    return div;
+  }
+
+  function pickRandomBase(playerId){
+    const bases = [];
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = buildingAt(x,y);
+        if(b && b.kindId==="BASE" && b.owner===playerId){
+          bases.push({b,x,y});
+        }
+      }
+    }
+    if(!bases.length) return null;
+    return bases[randInt(bases.length)];
+  }
+
+  function autoOpenShopForCurrentPlayer(){
+    if(Game.gameOver) return;
+    const choice = pickRandomBase(Game.currentPlayer);
+    if(!choice) return;
+    selectBuilding(choice.b, choice.x, choice.y);
+    openShopIfOnOwnedBase();
+  }
+
+  function makeSpriteNode(typeId, ownerId, size){
+    const img = new Image();
+    const list = getSpriteList(typeId, ownerId);
+    img.src = list[0]?.src || "";
+    img.width = size;
+    img.height = size;
+    img.style.imageRendering = "pixelated";
+    img.style.borderRadius = "8px";
+    img.style.border = "1px solid #23346b";
+    img.style.background = "#0b1433";
+    return img;
+  }
+
+  function removeUnit(u){
+    const idx = Game.units.findIndex(z => z.uid===u.uid);
+    if(idx>=0) Game.units.splice(idx,1);
+  }
+
+  function owningPlayer(id){ return PLAYERS.find(p=>p.id===id) || PLAYERS[0]; }
+
+  /***********************************************************************
+   * NEW: Tile defense stat per your rule
+   * - All building tiles: 3
+   * - Ground tiles: 0
+   ***********************************************************************/
+  function tileDefenseStat(x,y){
+    const b = buildingAt(x,y);
+    return b ? 3 : 0;
+  }
+
+  /***********************************************************************
+   * Map Generation
+   ***********************************************************************/
+  function initEmptyLayers(){
+    Game.terrain = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>TERRAIN.PLAINS));
+    Game.buildings = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>null));
+  }
+
+  function placeBuilding(x,y, kindId, owner=null){
+    Game.buildings[y][x] = {
+      kindId,
+      def: BUILDING[kindId],
+      owner,
+      capturePoints: 20
+    };
+  }
+
+  function generateMap(){
+    initEmptyLayers();
+
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = TERRAIN.PLAINS;
+      }
+    }
+
+    const roadY = 5;
+    for(let x=1;x<GRID_W-1;x++){
+      Game.terrain[roadY][x] = TERRAIN.ROAD;
+      Game.terrain[roadY+1][x] = TERRAIN.ROAD;
+    }
+
+    const forests = [
+      {x:3,y:2},{x:4,y:2},{x:3,y:3},
+      {x:11,y:2},{x:12,y:2},{x:12,y:3},
+      {x:2,y:9},{x:3,y:9},{x:3,y:8},
+      {x:12,y:9},{x:13,y:9},{x:12,y:8}
+    ];
+    for(const p of forests){
+      if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.FOREST;
+    }
+
+    const mountains = [
+      {x:7,y:2},{x:8,y:2},
+      {x:7,y:9},{x:8,y:9},
+      {x:7,y:5},{x:8,y:6}
+    ];
+    for(const p of mountains){
+      if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.MOUNTAIN;
+    }
+
+    for(let x=0;x<3;x++){
+      Game.terrain[0][x] = TERRAIN.WATER;
+      Game.terrain[0][GRID_W-1-x] = TERRAIN.WATER;
+      Game.terrain[GRID_H-1][x] = TERRAIN.WATER;
+      Game.terrain[GRID_H-1][GRID_W-1-x] = TERRAIN.WATER;
+    }
+
+    placeBuilding(1,1,"HQ",1);
+    placeBuilding(GRID_W-2, GRID_H-2, "HQ", 2);
+
+    placeBuilding(2,1,"BASE",1);
+    placeBuilding(1,2,"BASE",1);
+
+    placeBuilding(GRID_W-3, GRID_H-2,"BASE",2);
+    placeBuilding(GRID_W-2, GRID_H-3,"BASE",2);
+
+    const cities = [
+      {x:5,y:3},{x:10,y:3},
+      {x:5,y:8},{x:10,y:8},
+      {x:7,y:6},{x:8,y:5},
+      {x:2,y:6},{x:13,y:6}
+    ];
+    for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
+  }
+
+  /***********************************************************************
+   * Game Initialization / Reset
+   ***********************************************************************/
+  function loadSprites(){
+    for(const [typeId, owners] of Object.entries(SPRITE_SOURCES)){
+      SPRITE_IMAGES[typeId] = {};
+      for(const [ownerId, srcList] of Object.entries(owners)){
+        SPRITE_IMAGES[typeId][ownerId] = srcList.map(src=>{
+          const img = new Image();
+          img.src = src;
+          return img;
+        });
+      }
+    }
+
+    for(const [kindId, owners] of Object.entries(BUILDING_SOURCES)){
+      BUILDING_IMAGES[kindId] = {};
+      for(const [ownerId, src] of Object.entries(owners)){
+        const img = new Image();
+        img.src = src;
+        BUILDING_IMAGES[kindId][ownerId] = img;
+      }
+    }
+  }
+
+  function freshMatch(){
+    Game.day = 1;
+    Game.currentPlayer = 1;
+    Game.funds = { 1: 5000, 2: 5000 };
+    Game.units = [];
+    Game.sel = null;
+    Game.phase = "IDLE";
+    Game.moveMap = null;
+    Game.moveTiles = new Set();
+    Game.path = [];
+    Game.atkTiles = new Set();
+    Game.hovered = {x:-1,y:-1};
+    Game.gameOver = false;
+
+    generateMap();
+
+    // Starting units (balanced; includes some new unit types)
+    Game.units.push(makeUnit("INF",1, 2,2));
+    Game.units.push(makeUnit("INF",1, 3,1));
+    Game.units.push(makeUnit("TANK",1, 2,3));
+    Game.units.push(makeUnit("ART",1, 4,2));
+
+    Game.units.push(makeUnit("INF",2, GRID_W-3, GRID_H-3));
+    Game.units.push(makeUnit("INF",2, GRID_W-4, GRID_H-2));
+    Game.units.push(makeUnit("TANK",2, GRID_W-3, GRID_H-4));
+    Game.units.push(makeUnit("ART",2, GRID_W-5, GRID_H-3));
+
+    clearLog();
+    logLine("Match start. Player 1 begins.", 1);
+    updateUI();
+    renderLegend(); // NEW
+    autoOpenShopForCurrentPlayer();
+  }
+
+  function hardReset(){
+    UNIT_ID_SEQ = 1;
+    freshMatch();
+  }
+
+  /***********************************************************************
+   * Logging
+   ***********************************************************************/
+  function clearLog(){
+    logBox.innerHTML = "";
+  }
+
+  function logLine(text, playerId=null){
+    const p = document.createElement("p");
+    p.className = "line " + (playerId===1 ? "p1" : playerId===2 ? "p2" : "");
+    p.textContent = text;
+    logBox.appendChild(p);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  /***********************************************************************
+   * Income & Turn Progression
+   ***********************************************************************/
+  function countOwnedIncome(playerId){
+    let total = 0;
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = buildingAt(x,y);
+        if(b && b.owner===playerId){
+          total += b.def.income;
+        }
+      }
+    }
+    return total;
+  }
+
+  function resetUnitsForTurn(playerId){
+    for(const u of Game.units){
+      if(u.owner===playerId){
+        u.moved = false;
+        u.acted = false;
+      }
+    }
+  }
+
+  function endTurn(){
+    if(Game.gameOver) return;
+
+    closeShop();
+    closeKey(); // NEW
+
+    clearSelection();
+
+    Game.currentPlayer = (Game.currentPlayer===1) ? 2 : 1;
+
+    if(Game.currentPlayer===1){
+      Game.day += 1;
+      logLine("— Day " + Game.day + " —", null);
+    }
+
+    const income = countOwnedIncome(Game.currentPlayer);
+    Game.funds[Game.currentPlayer] += income;
+    logLine(`${owningPlayer(Game.currentPlayer).name} receives ${income} funds (income).`, Game.currentPlayer);
+
+    resetUnitsForTurn(Game.currentPlayer);
+
+    updateUI();
+    autoOpenShopForCurrentPlayer();
+  }
+
+  /***********************************************************************
+   * Selection & Phases
+   ***********************************************************************/
+  function clearSelection(){
+    Game.sel = null;
+    Game.phase = "IDLE";
+    Game.moveMap = null;
+    Game.moveTiles = new Set();
+    Game.atkTiles = new Set();
+    Game.path = [];
+    elSelHint.textContent = "Click a unit, building, or tile.";
+    elSelKv.innerHTML = "";
+    elSelStats.innerHTML = "";
+  }
+
+  function selectUnit(u){
+    if(Game.gameOver) return;
+    clearSelection();
+    Game.sel = { type:"unit", unit:u, x:u.x, y:u.y };
+    updateSelectionPanel();
+    computeMoveOverlayIfApplicable();
+    computeAttackOverlayIfApplicable();
+    if(u.owner===Game.currentPlayer && !u.acted){
+      Game.phase = "ATTACKING";
+    }
+  }
+
+  function selectBuilding(b, x, y){
+    if(Game.gameOver) return;
+    clearSelection();
+    Game.sel = { type:"building", building:b, x, y };
+    updateSelectionPanel();
+  }
+
+  // NEW: select tile (even empty) so we can show defense stat
+  function selectTile(x,y){
+    if(Game.gameOver) return;
+    clearSelection();
+    Game.sel = { type:"tile", x, y };
+    updateSelectionPanel();
+  }
+
+  function updateSelectionPanel(){
+    elSelKv.innerHTML = "";
+    elSelStats.innerHTML = "";
+
+    if(!Game.sel){
+      elSelHint.textContent = "Click a unit, building, or tile.";
+      return;
+    }
+
+    if(Game.sel.type==="unit"){
+      const u = Game.sel.unit;
+      const p = owningPlayer(u.owner);
+      const hpPct = u.hp / u.def.maxHP;
+      const sprite = makeSpriteNode(u.typeId, u.owner, 80);
+      const imgRow = document.createElement("div");
+      imgRow.className = "selImgRow";
+      imgRow.appendChild(sprite);
+
+      elSelHint.textContent = "Selected unit. Move, then attack/capture.";
+      addKV("Owner", p.name);
+      addKV("Type", `${u.def.name} (${u.def.abbr})`); // NEW: show abbr
+      addKV("HP", `${u.hp}/${u.def.maxHP}`);
+      addKV("Move", `${u.def.move} (${u.def.movementType})`);
+      addKV("Range", `${u.def.rangeMin}-${u.def.rangeMax}`);
+      addKV("Status", `${u.moved ? "Moved" : "Ready"} / ${u.acted ? "Acted" : "Ready"}`);
+
+      const tile = terrainAt(u.x,u.y);
+      addKV("Terrain", tile.name);
+
+      const b = buildingAt(u.x,u.y);
+      addKV("Tile Defense", String(tileDefenseStat(u.x,u.y))); // NEW per your rule
+
+      if(b){
+        addKV("Building", b.def.name + (b.owner ? ` (Owned by P${b.owner})` : " (Neutral)"));
+      }
+
+      // Detailed stat pills similar to shop cards
+      const pills = [];
+      const typePill = document.createElement("span");
+      typePill.className = "pill";
+      typePill.textContent = u.def.name;
+      pills.push(typePill);
+
+      const hpPill = document.createElement("span");
+      hpPill.className = "pill " + (hpPct>0.66 ? "good" : hpPct>0.33 ? "warn" : "bad");
+      hpPill.textContent = `HP ${u.hp}/${u.def.maxHP}`;
+      pills.push(hpPill);
+
+      const dmgPreview = previewDamageRange(u.def);
+      const dmgPill = document.createElement("span");
+      dmgPill.className = "pill warn";
+      dmgPill.textContent = `Damage roll vs INF: ${dmgPreview.min}-${dmgPreview.max}`;
+      pills.push(dmgPill);
+
+      const armorPill = document.createElement("span");
+      armorPill.className = "pill";
+      armorPill.textContent = `Armor ${u.def.armor ?? 0}`;
+      pills.push(armorPill);
+
+      const capPill = document.createElement("span");
+      capPill.className = "pill " + (u.def.canCapture ? "good" : "");
+      capPill.textContent = u.def.canCapture ? "Can capture" : "No capture";
+      pills.push(capPill);
+
+      const movePill = document.createElement("span");
+      movePill.className = "pill";
+      movePill.textContent = `Move: ${u.def.move} (${u.def.movementType})`;
+
+      const rangePill = document.createElement("span");
+      rangePill.className = "pill";
+      rangePill.textContent = `Range: ${u.def.rangeMin}-${u.def.rangeMax}`;
+
+      const statusPill = document.createElement("span");
+      statusPill.className = "pill";
+      statusPill.textContent = `Status: ${u.moved ? "Moved" : "Ready"} / ${u.acted ? "Acted" : "Ready"}`;
+
+      const terrain = terrainAt(u.x,u.y);
+      const terrainPill = document.createElement("span");
+      terrainPill.className = "pill";
+      terrainPill.textContent = `Terrain: ${terrain.name}`;
+
+      const defPill = document.createElement("span");
+      defPill.className = "pill";
+      defPill.textContent = `Tile Def: ${tileDefenseStat(u.x,u.y)}`;
+
+      const row1 = document.createElement("div");
+      row1.className = "selRow center";
+      row1.appendChild(typePill);
+      row1.appendChild(hpPill);
+
+      const row2 = document.createElement("div");
+      row2.className = "selRow";
+      row2.appendChild(dmgPill);
+      row2.appendChild(armorPill);
+      row2.appendChild(capPill);
+
+      const row3 = document.createElement("div");
+      row3.className = "selRow center";
+      row3.appendChild(movePill);
+      row3.appendChild(rangePill);
+
+      const row4 = document.createElement("div");
+      row4.className = "selRow center";
+      row4.appendChild(statusPill);
+      row4.appendChild(terrainPill);
+      row4.appendChild(defPill);
+
+      setSelStats([imgRow, row1, row2, row3, row4]);
+    } else if(Game.sel.type==="building") {
+      const b = Game.sel.building;
+      elSelHint.textContent = "Selected building.";
+
+      const imgRow = document.createElement("div");
+      imgRow.className = "selImgRow";
+      imgRow.appendChild(makeBuildingNode(b.kindId, b.owner ?? 0, 80));
+
+      const typePill = document.createElement("span");
+      typePill.className = "pill";
+      typePill.textContent = b.def.name;
+
+      const ownerPill = document.createElement("span");
+      ownerPill.className = "pill";
+      ownerPill.textContent = b.owner ? `Owner: P${b.owner}` : "Owner: Neutral";
+
+      const hpPill = document.createElement("span");
+      hpPill.className = "pill warn";
+      hpPill.textContent = `HP: ${b.capturePoints}/20`;
+
+      const defPill = document.createElement("span");
+      defPill.className = "pill";
+      defPill.textContent = `Tile Def: ${tileDefenseStat(Game.sel.x, Game.sel.y)}`;
+
+      const terrainPill = document.createElement("span");
+      terrainPill.className = "pill";
+      terrainPill.textContent = `Terrain: ${terrainAt(Game.sel.x, Game.sel.y).name}`;
+
+      const row1 = document.createElement("div");
+      row1.className = "selRow center";
+      row1.appendChild(typePill);
+      row1.appendChild(ownerPill);
+      row1.appendChild(hpPill);
+
+      const row2 = document.createElement("div");
+      row2.className = "selRow center";
+      row2.appendChild(defPill);
+      row2.appendChild(terrainPill);
+
+      setSelStats([imgRow, row1, row2]);
+    } else {
+      // NEW: tile selection view
+      elSelHint.textContent = "Selected tile.";
+      const t = terrainAt(Game.sel.x, Game.sel.y);
+
+      const imgRow = document.createElement("div");
+      imgRow.className = "selImgRow";
+      imgRow.appendChild(makeTerrainNode(t, 80));
+
+      const terrainPill = document.createElement("span");
+      terrainPill.className = "pill";
+      terrainPill.textContent = `Terrain: ${t.name}`;
+
+      const defPill = document.createElement("span");
+      defPill.className = "pill";
+      defPill.textContent = "Tile Def: 0";
+
+      const row1 = document.createElement("div");
+      row1.className = "selRow center";
+      row1.appendChild(terrainPill);
+      row1.appendChild(defPill);
+
+      setSelStats([imgRow, row1]);
+    }
+  }
+
+  function addKV(k,v){
+    const a=document.createElement("div"); a.textContent=k;
+    const b=document.createElement("div"); b.textContent=v;
+    elSelKv.appendChild(a); elSelKv.appendChild(b);
+  }
+
+  function setSelStats(nodes){
+    elSelStats.innerHTML = "";
+    for(const n of nodes){
+      elSelStats.appendChild(n);
+    }
+  }
+
+  function panelsOpen(){
+    return shopBox.style.display==="block" || keyBox.style.display==="block";
+  }
+
+  function updateHelpPosition(){
+    if(!helpBox || !lowerPanels) return;
+    const parent = helpBox.parentElement;
+    if(!parent) return;
+    if(panelsOpen()){
+      if(helpBox.nextElementSibling){
+        parent.appendChild(helpBox);
+      }
+    } else {
+      parent.insertBefore(helpBox, lowerPanels);
+    }
+  }
+
+  /***********************************************************************
+   * Movement
+   ***********************************************************************/
+  const DIRS = [
+    {dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}
+  ];
+
+  function isTileBlockedForMovement(x,y, movingUnit){
+    const u = unitAt(x,y);
+    if(!u) return false;
+    return (u.uid !== movingUnit.uid);
+  }
+
+  function movementCost(unit, x, y){
+    const t = terrainAt(x,y);
+    const mtype = unit.def.movementType;
+    const cost = t.moveCost[mtype] ?? 99;
+    return cost;
+  }
+
+  function computeMoveOverlayIfApplicable(){
+    Game.moveTiles = new Set();
+    Game.moveMap = null;
+    Game.atkTiles = new Set();
+    Game.path = [];
+
+    if(!Game.sel || Game.sel.type!=="unit") return;
+    const u = Game.sel.unit;
+
+    if(u.owner !== Game.currentPlayer) return;
+    if(u.moved) return;
+
+    const start = {x:u.x,y:u.y};
+    const maxMove = u.def.move;
+
+    const dist = new Map();
+    const prev = new Map();
+    const open = [];
+
+    const sk = key(start.x,start.y);
+    dist.set(sk, 0);
+    prev.set(sk, null);
+    open.push({k:sk, cost:0});
+
+    function pushOrUpdate(k,c){
+      for(const it of open){
+        if(it.k===k){
+          if(c<it.cost){ it.cost=c; }
+          return;
+        }
+      }
+      open.push({k, cost:c});
+    }
+
+    while(open.length){
+      open.sort((a,b)=>a.cost-b.cost);
+      const cur = open.shift();
+      if(!cur) break;
+      const {x,y} = parseKey(cur.k);
+      const curCost = cur.cost;
+
+      if(dist.get(cur.k) !== curCost) continue;
+
+      for(const d of DIRS){
+        const nx=x+d.dx, ny=y+d.dy;
+        if(!inBounds(nx,ny)) continue;
+
+        const step = movementCost(u,nx,ny);
+        if(step>=99) continue;
+        if(isTileBlockedForMovement(nx,ny,u)) continue;
+
+        const nc = curCost + step;
+        if(nc > maxMove) continue;
+
+        const nk = key(nx,ny);
+        const old = dist.get(nk);
+        if(old===undefined || nc < old){
+          dist.set(nk,nc);
+          prev.set(nk, cur.k);
+          pushOrUpdate(nk,nc);
+        }
+      }
+    }
+
+    Game.moveMap = { dist, prev, startKey: sk };
+    for(const k of dist.keys()){
+      Game.moveTiles.add(k);
+    }
+  }
+
+  function computeAttackOverlayIfApplicable(){
+    Game.atkTiles = new Set();
+    if(!Game.sel || Game.sel.type!=="unit") return;
+    const u = Game.sel.unit;
+    if(u.owner !== Game.currentPlayer) return;
+    if(u.acted) return;
+    Game.atkTiles = computeAttackTilesFromPosition(u, {x:u.x, y:u.y});
+  }
+
+  function reconstructPath(toKey){
+    if(!Game.moveMap) return [];
+    const { prev, startKey } = Game.moveMap;
+
+    const out = [];
+    let cur = toKey;
+    while(cur && cur!==startKey){
+      out.push(cur);
+      cur = prev.get(cur);
+    }
+    out.push(startKey);
+    out.reverse();
+    return out.map(parseKey);
+  }
+
+  /***********************************************************************
+   * Attack Tiles
+   ***********************************************************************/
+  function computeAttackTilesFromPosition(unit, pos){
+    const tiles = new Set();
+    const minR = unit.def.rangeMin;
+    const maxR = unit.def.rangeMax;
+
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const d = Math.abs(x-pos.x)+Math.abs(y-pos.y);
+        if(d>=minR && d<=maxR){
+          tiles.add(key(x,y));
+        }
+      }
+    }
+    return tiles;
+  }
+
+  function enemyInRangeAt(unit, k){
+    const {x,y} = parseKey(k);
+    const target = unitAt(x,y);
+    if(!target) return false;
+    return target.owner !== unit.owner;
+  }
+
+  /***********************************************************************
+   * Combat
+   ***********************************************************************/
+  function terrainDefenseBonus(x,y){
+    const t = terrainAt(x,y);
+    let def = t.def;
+    const b = buildingAt(x,y);
+    if(b) def += b.def.def;
+    return def;
+  }
+
+  function computeDamageRoll(attacker, defender){
+    const atkBase = attacker.def.baseAtk[defender.def.id] ?? 4;
+    const hpFactor = attacker.hp / attacker.def.maxHP;
+    const raw = atkBase * (0.75 + 0.75*hpFactor);
+
+    const defBonus = terrainDefenseBonus(defender.x, defender.y);
+    const armor = defender.def.armor ?? 0;
+
+    const reduction = clamp(0.10*defBonus + 0.08*armor, 0, 0.65);
+    const base = Math.max(1, raw * (1 - reduction));
+
+    const min = Math.max(1, Math.floor(base * 0.85));
+    const max = Math.max(min + 1, Math.ceil(base * 1.15));
+    const roll = clamp(randBetween(min, max), 1, defender.def.maxHP);
+    return { roll, min, max };
+  }
+
+  function previewDamageRange(def){
+    const base = def.baseAtk.INF ?? 4;
+    const min = Math.max(1, Math.floor(base * 0.85));
+    const max = Math.max(min + 1, Math.ceil(base * 1.15));
+    return { min, max };
+  }
+
+  function canRetaliate(defender, attacker){
+    if(defender.def.indirect) return false;
+    const d = manhattan({x:defender.x,y:defender.y},{x:attacker.x,y:attacker.y});
+    return d>=defender.def.rangeMin && d<=defender.def.rangeMax;
+  }
+
+  function performAttack(attacker, defender){
+    if(Game.gameOver) return;
+    if(attacker.acted) return;
+
+    const { roll: dmgToDef, min: atkMin, max: atkMax } = computeDamageRoll(attacker, defender);
+    defender.hp = clamp(defender.hp - dmgToDef, 0, defender.def.maxHP);
+    logLine(`${owningPlayer(attacker.owner).name} ${attacker.def.name} hits ${defender.def.name} for ${dmgToDef} (roll ${atkMin}-${atkMax}).`, attacker.owner);
+
+    if(defender.hp<=0){
+      logLine(`${defender.def.name} destroyed.`, attacker.owner);
+      removeUnit(defender);
+      attacker.acted = true;
+      return;
+    }
+
+    if(canRetaliate(defender, attacker)){
+      const { roll: dmgToAtk, min: defMin, max: defMax } = computeDamageRoll(defender, attacker);
+      attacker.hp = clamp(attacker.hp - dmgToAtk, 0, attacker.def.maxHP);
+      logLine(`${defender.def.name} retaliates for ${dmgToAtk} (roll ${defMin}-${defMax}).`, defender.owner);
+
+      if(attacker.hp<=0){
+        logLine(`${attacker.def.name} destroyed.`, defender.owner);
+        removeUnit(attacker);
+      } else {
+        attacker.acted = true;
+      }
+    } else {
+      attacker.acted = true;
+    }
+  }
+
+  /***********************************************************************
+   * Capture Mechanics
+   ***********************************************************************/
+  function tryCapture(unit){
+    if(!unit.def.canCapture) return false;
+
+    const b = buildingAt(unit.x, unit.y);
+    if(!b) return false;
+
+    if(b.owner === unit.owner && b.capturePoints===20) return false;
+
+    b.capturePoints = clamp(b.capturePoints - unit.hp, 0, 20);
+    logLine(`${owningPlayer(unit.owner).name} captures ${b.def.name}: ${b.capturePoints}/20 remaining.`, unit.owner);
+
+    if(b.capturePoints<=0){
+      b.owner = unit.owner;
+      b.capturePoints = 20;
+      logLine(`${b.def.name} captured by ${owningPlayer(unit.owner).name}.`, unit.owner);
+
+      if(b.kindId==="HQ"){
+        Game.gameOver = true;
+        logLine(`${owningPlayer(unit.owner).name} wins by capturing the HQ.`, unit.owner);
+      }
+    }
+
+    unit.acted = true;
+    return true;
+  }
+
+  /***********************************************************************
+   * Building / Shop
+   ***********************************************************************/
+  // UPDATED: include new units; keep existing list concept
+  const SHOP_UNITS = ["INF","TANK","MDT","ART","RKT"];
+
+  function openShopIfOnOwnedBase(){
+    if(Game.gameOver) return;
+    if(!Game.sel || Game.sel.type!=="building") return;
+    const b = Game.sel.building;
+    if(b.kindId!=="BASE") return;
+    if(b.owner !== Game.currentPlayer) return;
+
+    Game.phase = "SHOP";
+    shopBox.style.display = "block";
+    renderShop();
+    updateHelpPosition();
+  }
+
+  function closeShop(){
+    if(Game.phase==="SHOP"){
+      Game.phase = "IDLE";
+    }
+    shopBox.style.display = "block";
+    renderShop();
+    updateHelpPosition();
+  }
+
+  function renderShop(){
+    shopList.innerHTML = "";
+    const funds = Game.funds[Game.currentPlayer];
+    const validSel = Game.sel && Game.sel.type==="building" && Game.sel.building.kindId==="BASE" && Game.sel.building.owner===Game.currentPlayer;
+    const baseX = validSel ? Game.sel.x : -1;
+    const baseY = validSel ? Game.sel.y : -1;
+
+    if(!validSel){
+      shopHint.textContent = "Select your owned Base to build.";
+    } else if(unitAt(baseX, baseY)){
+      shopHint.textContent = "Base is occupied; move the unit off to build.";
+    } else {
+      shopHint.textContent = "Build units on your base (tile must be empty).";
+    }
+
+    for(const id of SHOP_UNITS){
+      const def = UNIT_DEF[id];
+      const canAfford = funds >= def.cost;
+      const occupied = validSel && unitAt(baseX, baseY) !== null;
+
+      const div = document.createElement("div");
+      div.className = "shopItem";
+
+      const left = document.createElement("div");
+      left.style.display = "grid";
+      left.style.gridTemplateColumns = "64px 1fr";
+      left.style.gap = "10px";
+      const sprite = makeSpriteNode(id, Game.currentPlayer, 64);
+      left.appendChild(sprite);
+
+      const info = document.createElement("div");
+      const dmgPreview = previewDamageRange(def);
+      const role = def.indirect ? "Indirect fire" : "Direct fire";
+      info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>
+                        <div class="meta">Cost ${def.cost} • Move ${def.move} (${def.movementType}) • Range ${def.rangeMin}-${def.rangeMax} • ${role}</div>`;
+      const statRow = document.createElement("div");
+      statRow.className = "shopStats";
+      statRow.innerHTML = `<span class="pill warn">Damage roll vs INF: ${dmgPreview.min}-${dmgPreview.max}</span>
+                           <span class="pill">Armor: ${def.armor ?? 0}</span>
+                           ${def.canCapture ? '<span class="pill good">Can capture</span>' : '<span class="pill">No capture</span>'}`;
+      info.appendChild(statRow);
+      left.appendChild(info);
+      div.appendChild(left);
+
+      const right = document.createElement("div");
+      const pill = document.createElement("span");
+      pill.className = "pill " + (canAfford ? "good" : "bad");
+      pill.textContent = canAfford ? "Affordable" : "Too expensive";
+      right.appendChild(pill);
+
+      const btn = document.createElement("button");
+      btn.className = "btn good";
+      btn.style.marginLeft = "8px";
+      btn.textContent = "Build";
+      btn.disabled = (!canAfford) || occupied || !validSel;
+
+      btn.addEventListener("click", ()=>{
+        buildUnitAtBase(id, baseX, baseY);
+      });
+
+      right.appendChild(btn);
+      div.appendChild(right);
+
+      shopList.appendChild(div);
+    }
+  }
+
+  function buildUnitAtBase(typeId, x, y){
+    if(Game.gameOver) return;
+
+    const b = buildingAt(x,y);
+    if(!b || b.kindId!=="BASE" || b.owner!==Game.currentPlayer) return;
+
+    if(unitAt(x,y)){
+      logLine("Cannot build: base tile occupied.", Game.currentPlayer);
+      return;
+    }
+
+    const def = UNIT_DEF[typeId];
+    if(Game.funds[Game.currentPlayer] < def.cost){
+      logLine("Cannot build: insufficient funds.", Game.currentPlayer);
+      return;
+    }
+
+    Game.funds[Game.currentPlayer] -= def.cost;
+    const u = makeUnit(typeId, Game.currentPlayer, x, y);
+    u.moved = true;
+    u.acted = true;
+
+    Game.units.push(u);
+    logLine(`${owningPlayer(Game.currentPlayer).name} builds ${def.name} for ${def.cost}.`, Game.currentPlayer);
+
+    updateUI();
+    renderShop();
+  }
+
+  /***********************************************************************
+   * NEW: Key/Legend
+   ***********************************************************************/
+  function openKey(){
+    keyBox.style.display = "block";
+    renderLegend();
+    updateHelpPosition();
+  }
+  function closeKey(){
+    keyBox.style.display = "none";
+    updateHelpPosition();
+  }
+  function toggleKey(){
+    if(keyBox.style.display === "block") closeKey();
+    else openKey();
+  }
+
+  function renderLegend(){
+    terrainLegend.innerHTML = "";
+    unitLegend.innerHTML = "";
+
+    const terrainItems = [TERRAIN.PLAINS, TERRAIN.ROAD, TERRAIN.FOREST, TERRAIN.MOUNTAIN, TERRAIN.WATER];
+    for(const t of terrainItems){
+      const row = document.createElement("div");
+      row.className = "legendRow";
+
+      const left = document.createElement("div");
+      left.style.display = "flex";
+      left.style.alignItems = "center";
+      left.style.gap = "10px";
+
+      const sw = document.createElement("span");
+      sw.className = "swatch";
+      sw.style.background = t.color;
+
+      const label = document.createElement("div");
+      label.innerHTML = `<div style="font-weight:800">${t.name}</div><div class="muted" style="font-size:12px">Move: foot ${t.moveCost.foot}, tread ${t.moveCost.tread}</div>`;
+
+      left.appendChild(sw);
+      left.appendChild(label);
+
+      const right = document.createElement("div");
+      right.innerHTML = `<span class="pill">Tile Def (click): ${t.name === "Water" ? "0" : "0"}</span>`;
+      // defense shown is per your rule; terrain always ground => 0 (buildings handled separately)
+
+      row.appendChild(left);
+      row.appendChild(right);
+
+      terrainLegend.appendChild(row);
+    }
+
+    for(const id of Object.keys(UNIT_DEF)){
+      const u = UNIT_DEF[id];
+      const row = document.createElement("div");
+      row.className = "legendRow";
+
+      const left = document.createElement("div");
+      left.innerHTML = `<div style="font-weight:800">${u.name} <span class="abbr">${u.abbr}</span></div>
+                        <div class="muted" style="font-size:12px">Cost ${u.cost} • Move ${u.move} • Range ${u.rangeMin}-${u.rangeMax}${u.indirect ? " (Indirect)" : ""}</div>`;
+      const right = document.createElement("div");
+      right.innerHTML = `<span class="pill ${u.canCapture ? "good" : ""}">${u.canCapture ? "Can capture" : "No capture"}</span>`;
+
+      row.appendChild(left);
+      row.appendChild(right);
+      unitLegend.appendChild(row);
+    }
+  }
+
+  /***********************************************************************
+   * Input Handling
+   ***********************************************************************/
+  function canvasToGrid(mx,my){
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((mx - rect.left) * (canvas.width / rect.width) / TILE);
+    const y = Math.floor((my - rect.top) * (canvas.height / rect.height) / TILE);
+    return {x,y};
+  }
+
+  function onLeftClickGrid(x,y){
+    if(Game.gameOver) return;
+
+    if(Game.phase==="SHOP"){
+      if(!(Game.sel && Game.sel.type==="building" && Game.sel.x===x && Game.sel.y===y)){
+        closeShop();
+      }
+    }
+
+    const u = unitAt(x,y);
+    const b = buildingAt(x,y);
+
+    if(Game.sel && Game.sel.type==="unit"){
+      const su = Game.sel.unit;
+
+      if(su.owner === Game.currentPlayer){
+        const clickedKey = key(x,y);
+        if(!su.moved && Game.moveTiles.has(clickedKey) && !(x===su.x && y===su.y)){
+          const occ = unitAt(x,y);
+          if(occ && occ.uid!==su.uid) return;
+
+          const destK = key(x,y);
+          reconstructPath(destK);
+
+          su.x = x; su.y = y;
+          su.moved = true;
+
+          logLine(`${owningPlayer(su.owner).name} moves ${su.def.name}.`, su.owner);
+
+          Game.atkTiles = computeAttackTilesFromPosition(su, {x,y});
+          Game.phase = "ATTACKING";
+          computeAttackOverlayIfApplicable();
+          updateSelectionPanel();
+          updateUI();
+          return;
+        }
+
+        if(!su.acted){
+          if(Game.atkTiles.has(clickedKey) && enemyInRangeAt(su,clickedKey)){
+            const target = unitAt(x,y);
+            if(target){
+              performAttack(su, target);
+
+              if(!Game.units.some(z=>z.uid===su.uid)){
+                clearSelection();
+              } else {
+                updateSelectionPanel();
+              }
+              computeAttackOverlayIfApplicable();
+              updateUI();
+              return;
+            }
+          }
+
+          if(x===su.x && y===su.y){
+            const did = tryCapture(su);
+            if(did){
+              computeAttackOverlayIfApplicable();
+              updateSelectionPanel();
+              updateUI();
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    // selection order: unit -> building -> tile
+    if(u){
+      selectUnit(u);
+      return;
+    }
+    if(b){
+      selectBuilding(b, x, y);
+      return;
+    }
+
+    // NEW: select empty tile instead of clearing (so defense stat shows)
+    selectTile(x,y);
+    updateUI();
+  }
+
+  function onRightClick(e){
+    e.preventDefault();
+    closeShop();
+    closeKey();
+    clearSelection();
+    updateUI();
+  }
+
+  canvas.addEventListener("mousemove", (e)=>{
+    const g = canvasToGrid(e.clientX, e.clientY);
+    Game.hovered = g;
+
+    if(Game.sel && Game.sel.type==="unit" && Game.moveTiles.size && Game.moveTiles.has(key(g.x,g.y))){
+      Game.path = reconstructPath(key(g.x,g.y));
+    } else {
+      Game.path = [];
+    }
+  });
+
+  canvas.addEventListener("mousedown", (e)=>{
+    if(e.button===2) return;
+    const g = canvasToGrid(e.clientX, e.clientY);
+    if(!inBounds(g.x,g.y)) return;
+    onLeftClickGrid(g.x,g.y);
+  });
+
+  canvas.addEventListener("contextmenu", onRightClick);
+
+  window.addEventListener("keydown", (e)=>{
+    if(e.key==="e" || e.key==="E"){
+      endTurn();
+    } else if(e.key==="b" || e.key==="B"){
+      const choice = pickRandomBase(Game.currentPlayer);
+      if(choice){
+        selectBuilding(choice.b, choice.x, choice.y);
+        openShopIfOnOwnedBase();
+      } else {
+        logLine("No owned Base available to open shop.", Game.currentPlayer);
+      }
+    } else if(e.key==="k" || e.key==="K"){
+      toggleKey();
+    } else if(e.key==="Escape"){
+      closeShop();
+      closeKey();
+      clearSelection();
+      updateUI();
+      updateHelpPosition();
+    }
+  });
+
+  /***********************************************************************
+   * UI Buttons
+   ***********************************************************************/
+  endTurnBtn.addEventListener("click", endTurn);
+  newBtn.addEventListener("click", freshMatch);
+  resetBtn.addEventListener("click", hardReset);
+  openShopBtn.addEventListener("click", ()=>{ autoOpenShopForCurrentPlayer(); });
+  closeShopBtn.addEventListener("click", ()=>{ closeShop(); updateUI(); });
+  keyBtn.addEventListener("click", ()=>{ toggleKey(); });
+  closeKeyBtn.addEventListener("click", ()=>{ closeKey(); });
+
+  /***********************************************************************
+   * UI Updates
+   ***********************************************************************/
+  function updateUI(){
+    const cp = owningPlayer(Game.currentPlayer);
+    elCurPlayer.textContent = cp.name;
+    elCurPlayer.className = "pill";
+    elCurPlayer.style.borderColor = cp.color;
+    elCurPlayer.style.color = cp.id===1 ? "#a9d9ff" : "#ffc1cd";
+
+    elDay.textContent = String(Game.day);
+    elP1Funds.textContent = String(Game.funds[1]);
+    elP2Funds.textContent = String(Game.funds[2]);
+
+    if(Game.sel && Game.sel.type==="unit"){
+      const u = Game.sel.unit;
+      if(u.owner===Game.currentPlayer && !u.moved){
+        computeMoveOverlayIfApplicable();
+      } else {
+        Game.moveTiles = new Set();
+      }
+      computeAttackOverlayIfApplicable();
+      if(u.owner===Game.currentPlayer && !u.acted){
+        Game.phase = "ATTACKING";
+      }
+    } else {
+      Game.moveTiles = new Set();
+      Game.atkTiles = new Set();
+      Game.path = [];
+    }
+
+    endTurnBtn.disabled = Game.gameOver;
+
+    if(Game.sel) updateSelectionPanel();
+
+    renderShop();
+  }
+
+  /***********************************************************************
+   * Rendering
+   ***********************************************************************/
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = COLORS.bg;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    drawTerrain();
+    drawBuildings();
+    drawOverlays();
+    drawUnits();
+    drawGrid();
+    drawTopHUD();
+
+    requestAnimationFrame(draw);
+  }
+
+  // NEW: clearer terrain rendering (road/water/grass distinct, deterministic patterns)
+  function drawTerrain(){
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const t = Game.terrain[y][x];
+        const px = x*TILE, py = y*TILE;
+
+        // base fill
+        ctx.fillStyle = t.color;
+        ctx.fillRect(px, py, TILE, TILE);
+
+        // add clearer per-terrain features
+        if(t.id === "PLAINS"){
+          // grass blades (deterministic)
+          ctx.strokeStyle = "rgba(255,255,255,0.10)";
+          ctx.lineWidth = 1;
+          const count = 8;
+          for(let i=0;i<count;i++){
+            const ox = 6 + hashInt(x,y,1000+i, TILE-12);
+            const oy = 8 + hashInt(x,y,2000+i, TILE-16);
+            const h = 6 + (hashInt(x,y,3000+i, 6));
+            ctx.beginPath();
+            ctx.moveTo(px+ox, py+oy+h);
+            ctx.lineTo(px+ox+1, py+oy);
+            ctx.stroke();
+          }
+          // darker patches
+          ctx.globalAlpha = 0.10;
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(px+6, py+6, 10, 8);
+          ctx.fillRect(px+TILE-18, py+TILE-16, 12, 10);
+          ctx.globalAlpha = 1;
+        }
+
+        if(t.id === "FOREST"){
+          // tree icons
+          for(let i=0;i<3;i++){
+            const ox = 10 + hashInt(x,y,4000+i, TILE-20);
+            const oy = 10 + hashInt(x,y,5000+i, TILE-20);
+            ctx.fillStyle = "rgba(255,255,255,0.12)";
+            ctx.beginPath();
+            ctx.moveTo(px+ox, py+oy+14);
+            ctx.lineTo(px+ox+6, py+oy);
+            ctx.lineTo(px+ox+12, py+oy+14);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = "rgba(0,0,0,0.18)";
+            ctx.fillRect(px+ox+5, py+oy+14, 2, 6);
+          }
+        }
+
+        if(t.id === "MOUNTAIN"){
+          // peak lines
+          ctx.strokeStyle = "rgba(255,255,255,0.18)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(px+8, py+TILE-10);
+          ctx.lineTo(px+18, py+16);
+          ctx.lineTo(px+28, py+TILE-10);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(px+24, py+TILE-12);
+          ctx.lineTo(px+34, py+20);
+          ctx.lineTo(px+44, py+TILE-12);
+          ctx.stroke();
+          ctx.lineWidth = 1;
+        }
+
+        if(t.id === "ROAD"){
+          // road shoulders
+          ctx.fillStyle = "rgba(0,0,0,0.20)";
+          ctx.fillRect(px, py, TILE, TILE);
+          // dashed centerline
+          ctx.strokeStyle = "rgba(255, 209, 102, 0.65)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6,6]);
+          ctx.beginPath();
+          ctx.moveTo(px+TILE/2, py+6);
+          ctx.lineTo(px+TILE/2, py+TILE-6);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.lineWidth = 1;
+        }
+
+        if(t.id === "WATER"){
+          // waves
+          ctx.strokeStyle = "rgba(93, 214, 255, 0.20)";
+          ctx.lineWidth = 2;
+          for(let i=0;i<3;i++){
+            const oy = 10 + i*12 + (hashInt(x,y,6000+i, 5));
+            ctx.beginPath();
+            ctx.arc(px+14, py+oy, 8, 0, Math.PI);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(px+34, py+oy+4, 8, 0, Math.PI);
+            ctx.stroke();
+          }
+          ctx.lineWidth = 1;
+        }
+      }
+    }
+  }
+
+  function drawBuildings(){
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = Game.buildings[y][x];
+        if(!b) continue;
+
+        const owner = b.owner ?? 0;
+        const baseX = x*TILE, baseY = y*TILE;
+        const img = getBuildingSprite(b.kindId, owner);
+        const margin = TILE*0.05;
+        if(img && img.complete){
+          ctx.drawImage(img, baseX+margin, baseY+margin, TILE-2*margin, TILE-2*margin);
+        } else {
+          // fallback simple plate
+          ctx.fillStyle = "#0a0f26";
+          ctx.fillRect(baseX+6, baseY+6, TILE-12, TILE-12);
+          ctx.strokeStyle = "#23346b";
+          ctx.strokeRect(baseX+6, baseY+6, TILE-12, TILE-12);
+        }
+
+        // capture indicator (above tile to avoid overlap)
+        if(b.owner===null || b.capturePoints<20){
+          const pct = b.capturePoints / 20;
+          const barW = TILE-16;
+          const barH = 6;
+          const barX = baseX+8;
+          const barY = Math.max(0, baseY-8);
+          ctx.fillStyle = "#0b1433";
+          ctx.fillRect(barX, barY, barW, barH);
+          ctx.fillStyle = owner ? owningPlayer(owner).color : "#ffd166";
+          ctx.fillRect(barX, barY, Math.floor(barW*pct), barH);
+          ctx.strokeStyle = "#23346b";
+          ctx.strokeRect(barX, barY, barW, barH);
+        }
+      }
+    }
+  }
+
+  // NEW: clearer unit labels (abbr) and slightly improved silhouettes
+  function drawUnits(){
+    for(const u of Game.units){
+      const px = u.x*TILE, py = u.y*TILE;
+      const p = owningPlayer(u.owner);
+      const margin = TILE * 0.05; // 0.9x size to reveal tile edges
+      const ux = px + margin;
+      const uy = py + margin;
+      const size = TILE - margin*2;
+
+      // shadow
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.ellipse(px+TILE/2, py+TILE/2+10, size*0.45, size*0.22, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // sprite draw (fallback to shapes if missing)
+      const spriteList = getSpriteList(u.typeId, u.owner);
+      const img = spriteList.length ? spriteList[u.spriteIdx % spriteList.length] : null;
+      if(img && img.complete){
+        ctx.drawImage(img, ux, uy, size, size);
+      } else {
+        ctx.fillStyle = p.dark;
+        ctx.fillRect(ux, uy+4, size, size-10);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(ux+2, uy+6, size-4, size-14);
+      }
+
+      // HP badge
+      const hpPct = u.hp / u.def.maxHP;
+      const overlayTop = Math.max(0, py-24);
+      const centerX = px + TILE/2;
+
+      // Name tag (smaller, stacked)
+      const labelW = 46, labelH = 12;
+      const labelX = centerX - labelW/2;
+      const labelY = overlayTop;
+      ctx.fillStyle = "#0a0f26";
+      ctx.globalAlpha = 0.65;
+      ctx.fillRect(labelX, labelY, labelW, labelH);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#23346b";
+      ctx.strokeRect(labelX, labelY, labelW, labelH);
+      ctx.fillStyle = "#e8eeff";
+      ctx.font = "bold 9px system-ui";
+      ctx.fillText(`${u.def.abbr} - ${u.hp}`, labelX+4, labelY+9);
+
+      // HP bar (stacked under name, smaller)
+      const barW = 34, barH = 10;
+      const badgeX = centerX - barW/2;
+      const badgeY = labelY + labelH + 2;
+      const badgeFillW = Math.max(0, Math.round((barW-2)*hpPct));
+      ctx.fillStyle = "#0b1433";
+      ctx.fillRect(badgeX, badgeY, barW, barH);
+      ctx.fillStyle = hpPct>0.66 ? "#74ff8a" : hpPct>0.33 ? "#ffd166" : "#ff5d7a";
+      ctx.fillRect(badgeX+1, badgeY+1, badgeFillW, barH-2);
+      ctx.strokeStyle = "#23346b";
+      ctx.strokeRect(badgeX, badgeY, barW, barH);
+
+      // exhausted overlay
+      if(u.owner===Game.currentPlayer && (u.moved || u.acted)){
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(px,py,TILE,TILE);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function drawGrid(){
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    for(let x=0;x<=GRID_W;x++){
+      ctx.beginPath();
+      ctx.moveTo(x*TILE, 0);
+      ctx.lineTo(x*TILE, CANVAS_H);
+      ctx.stroke();
+    }
+    for(let y=0;y<=GRID_H;y++){
+      ctx.beginPath();
+      ctx.moveTo(0, y*TILE);
+      ctx.lineTo(CANVAS_W, y*TILE);
+      ctx.stroke();
+    }
+  }
+
+  function drawTopHUD(){
+    if(Game.gameOver){
+      ctx.fillStyle = "#0b1433";
+      ctx.fillRect(CANVAS_W/2-220, CANVAS_H/2-40, 440, 80);
+      ctx.strokeStyle = "#23346b";
+      ctx.strokeRect(CANVAS_W/2-220, CANVAS_H/2-40, 440, 80);
+      ctx.fillStyle = "#e8eeff";
+      ctx.font = "bold 18px system-ui";
+      ctx.fillText("GAME OVER", CANVAS_W/2-70, CANVAS_H/2-10);
+      ctx.font = "14px system-ui";
+      ctx.fillText("Press New Game to play again.", CANVAS_W/2-110, CANVAS_H/2+18);
+    }
+  }
+
+  function drawOverlays(){
+    if(Game.moveTiles && Game.moveTiles.size){
+      for(const k of Game.moveTiles){
+        const {x,y} = parseKey(k);
+        const px=x*TILE, py=y*TILE;
+        ctx.fillStyle = COLORS.move;
+        ctx.fillRect(px,py,TILE,TILE);
+        ctx.strokeStyle = COLORS.moveEdge;
+        ctx.strokeRect(px+1,py+1,TILE-2,TILE-2);
+      }
+    }
+
+    if(Game.path && Game.path.length>1){
+      ctx.strokeStyle = COLORS.selectEdge;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      for(let i=0;i<Game.path.length;i++){
+        const p = Game.path[i];
+        const cx = p.x*TILE + TILE/2;
+        const cy = p.y*TILE + TILE/2;
+        if(i===0) ctx.moveTo(cx,cy);
+        else ctx.lineTo(cx,cy);
+      }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+
+    if(Game.sel && Game.sel.type==="unit"){
+      const su = Game.sel.unit;
+      if(su.owner===Game.currentPlayer && !su.acted){
+        for(const k of Game.atkTiles){
+          if(!enemyInRangeAt(su,k)) continue;
+          const {x,y} = parseKey(k);
+          const px=x*TILE, py=y*TILE;
+          ctx.fillStyle = COLORS.atk;
+          ctx.fillRect(px,py,TILE,TILE);
+          ctx.strokeStyle = COLORS.atkEdge;
+          ctx.strokeRect(px+1,py+1,TILE-2,TILE-2);
+        }
+      }
+    }
+
+    if(Game.sel){
+      const x = Game.sel.type==="unit" ? Game.sel.unit.x : Game.sel.x;
+      const y = Game.sel.type==="unit" ? Game.sel.unit.y : Game.sel.y;
+      const px=x*TILE, py=y*TILE;
+      ctx.fillStyle = COLORS.select;
+      ctx.fillRect(px,py,TILE,TILE);
+      ctx.strokeStyle = COLORS.selectEdge;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(px+2,py+2,TILE-4,TILE-4);
+      ctx.lineWidth = 1;
+    }
+
+    for(const u of Game.units){
+      if(u.owner!==Game.currentPlayer) continue;
+      if(!u.def.canCapture || u.acted) continue;
+      const b = buildingAt(u.x, u.y);
+      if(!b) continue;
+      if(b.owner===u.owner && b.capturePoints===20) continue;
+      const px=u.x*TILE, py=u.y*TILE;
+      ctx.fillStyle = COLORS.danger;
+      ctx.fillRect(px,py,TILE,TILE);
+      ctx.strokeStyle = COLORS.warn;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(px+2,py+2,TILE-4,TILE-4);
+      ctx.lineWidth = 1;
+    }
+
+    if(inBounds(Game.hovered.x, Game.hovered.y)){
+      const px=Game.hovered.x*TILE, py=Game.hovered.y*TILE;
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(px,py,TILE,TILE);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /***********************************************************************
+   * Win Checks
+   ***********************************************************************/
+  function hasHQ(ownerId){
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = buildingAt(x,y);
+        if(b && b.kindId==="HQ" && b.owner===ownerId) return true;
+      }
+    }
+    return false;
+  }
+
+  function sanityWinCheck(){
+    if(!hasHQ(1)){
+      Game.gameOver = true;
+      logLine("Player 2 wins (Player 1 HQ lost).", 2);
+    } else if(!hasHQ(2)){
+      Game.gameOver = true;
+      logLine("Player 1 wins (Player 2 HQ lost).", 1);
+    }
+  }
+
+  /***********************************************************************
+   * Auto-open shop on base double click
+   ***********************************************************************/
+  canvas.addEventListener("dblclick", (e)=>{
+    const g = canvasToGrid(e.clientX, e.clientY);
+    if(!inBounds(g.x,g.y)) return;
+    const b = buildingAt(g.x,g.y);
+    if(b && b.kindId==="BASE" && b.owner===Game.currentPlayer){
+      selectBuilding(b, g.x, g.y);
+      openShopIfOnOwnedBase();
+      updateUI();
+    }
+  });
+
+  /***********************************************************************
+   * Keep selection valid if unit dies
+   ***********************************************************************/
+  function validateSelection(){
+    if(!Game.sel) return;
+    if(Game.sel.type==="unit"){
+      const uid = Game.sel.unit.uid;
+      const still = Game.units.find(u=>u.uid===uid);
+      if(!still){
+        clearSelection();
+        updateUI();
+      } else {
+        Game.sel.unit = still;
+      }
+    }
+  }
+
+  /***********************************************************************
+   * Game Loop
+   ***********************************************************************/
+  function tick(){
+    validateSelection();
+    sanityWinCheck();
+  }
+  setInterval(tick, 120);
+
+  /***********************************************************************
+ * HOTFIX: Safe deterministic hash helpers (replaces buggy BigInt version)
+ ***********************************************************************/
+function hash2(x, y, seed = 1337) {
+  // 32-bit integer hash (no BigInt)
+  let h = (x | 0) * 374761393 ^ (y | 0) * 668265263 ^ (seed | 0) * 1442695041;
+  h = (h ^ (h >>> 13)) | 0;
+  h = (h * 1274126177) | 0;
+  h = (h ^ (h >>> 16)) | 0;
+  return h >>> 0; // unsigned
+}
+function hashFloat01(x, y, seed = 1337) {
+  return (hash2(x, y, seed) % 100000) / 100000;
+}
+function hashInt(x, y, seed, mod) {
+  return Math.floor(hashFloat01(x, y, seed) * mod);
+}
+
+
+  /***********************************************************************
+   * Boot
+   ***********************************************************************/
+  loadSprites();
+  hardReset();
+  requestAnimationFrame(draw);
+
+  </script>
+</body>
+</html>
