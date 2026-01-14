@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="icon" type="image/png" href="blue_rocket.png" />
+  <link rel="icon" type="image/png" href="assets/blue_rocket.png" />
   <title>Advanced Wars</title>
   <style>
     :root{
@@ -331,7 +331,7 @@
     <div id="panel">
       <div class="row" style="justify-content:center">
         <div style="display:flex;justify-content:center;width:100%;">
-          <img src="logo.png" alt="Game Logo" style="max-width:240px; height:auto; display:block;">
+          <img src="assets/logo.png" alt="Game Logo" style="max-width:240px; height:auto; display:block;">
         </div>
       </div>
 
@@ -394,7 +394,7 @@
         <button class="btn primary" id="endTurnBtn">End Turn (E)</button>
         <button class="btn" id="newBtn">New Game</button>
         <button class="btn bad" id="resetBtn" title="Hard reset the match">Reset</button>
-        <button class="btn" id="openShopBtn" title="Open your shop (random owned base)">Open Shop (B)</button>
+        <button class="btn" id="openShopBtn" title="Open your shop (cycles owned bases)">Open Shop (B)</button>
         <button class="btn" id="unselectBtn" title="Clear selection / close panels">ESC</button>
         <button class="btn" id="keyBtn" title="Open unit/terrain legend">Key (K)</button>
       </div>
@@ -543,27 +543,27 @@
   };
 
   const SPRITE_SOURCES = {
-    INF: { 1:["blue_inf.png","blue_inf2.png"], 2:["red_inf.png","red_inf2.png"] },
-    TANK:{ 1:["blue_tank.png"], 2:["red_tank.png"] },
-    MDT: { 1:["blue_mdtank.png"], 2:["red_mdtank.png"] },
-    ART: { 1:["blue_art.png"], 2:["red_art.png"] },
-    RKT: { 1:["blue_rocket.png"], 2:["red_rocket.png"] }
+    INF: { 1:["assets/blue_inf.png","assets/blue_inf2.png"], 2:["assets/red_inf.png","assets/red_inf2.png"] },
+    TANK:{ 1:["assets/blue_tank.png"], 2:["assets/red_tank.png"] },
+    MDT: { 1:["assets/blue_mdtank.png"], 2:["assets/red_mdtank.png"] },
+    ART: { 1:["assets/blue_art.png"], 2:["assets/red_art.png"] },
+    RKT: { 1:["assets/blue_rocket.png"], 2:["assets/red_rocket.png"] }
   };
   const SPRITE_IMAGES = {};
 
   const BUILDING_SOURCES = {
-    HQ:   { 1:"blue_hq.png", 2:"red_hq.png", 0:"building.png" },
-    BASE: { 1:"blue_base.png", 2:"red_base.png", 0:"building.png" },
-    CITY: { 1:"blue_base.png", 2:"red_base.png", 0:"building.png" }
+    HQ:   { 1:"assets/blue_hq.png", 2:"assets/red_hq.png", 0:"assets/building.png" },
+    BASE: { 1:"assets/blue_base.png", 2:"assets/red_base.png", 0:"assets/building.png" },
+    CITY: { 1:"assets/blue_base.png", 2:"assets/red_base.png", 0:"assets/building.png" }
   };
   const BUILDING_IMAGES = {};
 
   const TERRAIN_SOURCES = {
-    PLAINS: "grass.png",
-    FOREST: "forest.png",
-    MOUNTAIN: "mountain.png",
-    ROAD: "road.png",
-    WATER: "water.png"
+    PLAINS: "assets/grass.png",
+    FOREST: "assets/forest.png",
+    MOUNTAIN: "assets/mountain.png",
+    ROAD: "assets/road.png",
+    WATER: "assets/water.png"
   };
   const TERRAIN_IMAGES = {};
 
@@ -675,7 +675,7 @@
     ANDY: {
       id:"ANDY",
       name:"Andy",
-      img:"andy.png",
+      img:"assets/andy.png",
       specialty:"Balanced: no passive buffs/penalties.",
       power:"Hyper Repair: Heals all owned units by 2 HP; Activating the ability refreshes spent units so they can act again this turn.",
       super:"Hyper Upgrade: Heals all owned units by 5 HP, all units gain +1 Move and +20% attack for the turn; Activating the ability refreshes spent units so they can act again this turn."
@@ -683,7 +683,7 @@
     MAX: {
       id:"MAX",
       name:"Max",
-      img:"max.png",
+      img:"assets/max.png",
       specialty:"Direct units +20% attack; indirect units -1 max range.",
       power:"Max Force: Direct units +1 Move and ~+40% attack this turn; Activating the ability refreshes spent units so they can act again this turn.",
       super:"Max Blast: Direct units +2 Move and ~+60% attack this turn; Activating the ability refreshes spent units so they can act again this turn."
@@ -691,7 +691,7 @@
     SAMI: {
       id:"SAMI",
       name:"Sami",
-      img:"sami.png",
+      img:"assets/sami.png",
       specialty:"Infantry deal ~+20% damage; capture strength ~1.5× HP.",
       power:"Double Time: Infantry +1 Move, ~+50% damage, capture strength 2× HP; Activating the ability refreshes spent units so they can act again this turn.",
       super:"Victory March: Infantry +2 Move, ~+60% damage, captures complete in one turn; Activating the ability refreshes spent units so they can act again this turn."
@@ -699,7 +699,7 @@
     NELL: {
       id:"NELL",
       name:"Nell",
-      img:"nell.png",
+      img:"assets/nell.png",
       specialty:"Adds 0–2 extra “luck” damage on every hit.",
       power:"Lucky Star: Luck range 0–4 extra damage; Activating the ability refreshes spent units so they can act again this turn.",
       super:"Lady Luck: Luck range 0–6 extra damage; Activating the ability refreshes spent units so they can act again this turn."
@@ -707,7 +707,7 @@
     HACHI: {
       id:"HACHI",
       name:"Hachi",
-      img:"Hachi.png",
+      img:"assets/Hachi.png",
       specialty:"Units cost 10% less in shops.",
       power:"Barter: Units cost 50% less this turn; Activating the ability refreshes spent units so they can act again this turn.",
       super:"Merchant Union: Units cost 50% less this turn; Activating the ability refreshes spent units so they can act again this turn."
@@ -864,6 +864,7 @@
     moveTiles: new Set(),
     path: [],
     atkTiles: new Set(),
+    baseCycleIdx: { 1:0, 2:0 },
 
     hovered: { x:-1, y:-1 },
     gameOver: false,
@@ -962,7 +963,7 @@
     return img ? img.src : "";
   }
 
-  function pickRandomBase(playerId){
+  function getOwnedBases(playerId){
     const bases = [];
     for(let y=0;y<GRID_H;y++){
       for(let x=0;x<GRID_W;x++){
@@ -972,13 +973,22 @@
         }
       }
     }
+    bases.sort((a,b)=> (a.y - b.y) || (a.x - b.x));
+    return bases;
+  }
+
+  function pickNextBase(playerId){
+    const bases = getOwnedBases(playerId);
     if(!bases.length) return null;
-    return bases[randInt(bases.length)];
+    const idx = Game.baseCycleIdx[playerId] ?? 0;
+    const choice = bases[idx % bases.length];
+    Game.baseCycleIdx[playerId] = (idx + 1) % bases.length;
+    return choice;
   }
 
   function autoOpenShopForCurrentPlayer(){
     if(Game.gameOver) return;
-    const choice = pickRandomBase(Game.currentPlayer);
+    const choice = pickNextBase(Game.currentPlayer);
     if(!choice) return;
     selectBuilding(choice.b, choice.x, choice.y);
     openShopIfOnOwnedBase();
@@ -1132,6 +1142,7 @@
     Game.moveTiles = new Set();
     Game.path = [];
     Game.atkTiles = new Set();
+    Game.baseCycleIdx = {1:0, 2:0};
     Game.hovered = {x:-1,y:-1};
     Game.gameOver = false;
     Game.coMeter = {1:0, 2:0};
@@ -1318,6 +1329,8 @@
       const u = Game.sel.unit;
       const p = owningPlayer(u.owner);
       const hpPct = u.hp / u.def.maxHP;
+      const { minR, maxR } = getRangeForUnit(u);
+      const rangeText = formatRangeText(minR, maxR, unitMovePoints(u), u.def.id==="RKT");
       const sprite = makeSpriteNode(u.typeId, u.owner, 80);
       const imgRow = document.createElement("div");
       imgRow.className = "selImgRow";
@@ -1328,7 +1341,7 @@
       addKV("Type", `${u.def.name} (${u.def.abbr})`); // NEW: show abbr
       addKV("HP", `${u.hp}/${u.def.maxHP}`);
       addKV("Move", `${u.def.move} (${u.def.movementType})`);
-      addKV("Range", `${u.def.rangeMin}-${u.def.rangeMax}`);
+      addKV("Range", rangeText);
       addKV("Status", `${u.moved ? "Moved" : "Can Move"} / ${u.acted ? "Attacked" : "Can Atk"}`);
 
       const tile = terrainAt(u.x,u.y);
@@ -1375,7 +1388,7 @@
 
       const rangePill = document.createElement("span");
       rangePill.className = "pill";
-      rangePill.textContent = `Range: ${u.def.rangeMin}-${u.def.rangeMax}`;
+      rangePill.textContent = `Range: ${rangeText}`;
 
       const statusPill = document.createElement("span");
       statusPill.className = "pill";
@@ -1938,6 +1951,15 @@
     return { minR, maxR };
   }
 
+  // Show attack range text; rockets get a note for their move+fire reach (since this build allows it)
+  function formatRangeText(rangeMin, rangeMax, move=0, isRocket=false){
+    if(isRocket){
+      const threat = rangeMax + move;
+      return `${rangeMin}-${rangeMax} (max reach ${threat} w/ move)`;
+    }
+    return `${rangeMin}-${rangeMax}`;
+  }
+
   function attackMultiplier(attacker, defender){
     const co = getCOChoice(attacker.owner);
     const state = Game.coState[attacker.owner];
@@ -2237,8 +2259,9 @@
       const info = document.createElement("div");
       const dmgPreview = previewDamageRange(def);
       const role = def.indirect ? "Indirect fire" : "Direct fire";
+      const rangeLabel = formatRangeText(def.rangeMin, def.rangeMax, def.move, def.id==="RKT");
       info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>
-                        <div class="meta">Cost ${price} • Move ${def.move} (${def.movementType}) • Range ${def.rangeMin}-${def.rangeMax} • ${role}</div>`;
+                        <div class="meta">Cost ${price} • Move ${def.move} (${def.movementType}) • Range ${rangeLabel} • ${role}</div>`;
       const statRow = document.createElement("div");
       statRow.className = "shopStats";
       statRow.innerHTML = `<span class="pill warn">Damage roll vs INF: ${dmgPreview.min}-${dmgPreview.max}</span>
@@ -2364,8 +2387,9 @@
       row.className = "legendRow";
 
       const left = document.createElement("div");
+      const rangeLabel = formatRangeText(u.rangeMin, u.rangeMax, u.move, u.id==="RKT");
       left.innerHTML = `<div style="font-weight:800">${u.name} <span class="abbr">${u.abbr}</span></div>
-                        <div class="muted" style="font-size:12px">Cost ${u.cost} • Move ${u.move} • Range ${u.rangeMin}-${u.rangeMax}${u.indirect ? " (Indirect)" : ""}</div>`;
+                        <div class="muted" style="font-size:12px">Cost ${u.cost} • Move ${u.move} • Range ${rangeLabel}${u.indirect ? " (Indirect)" : ""}</div>`;
       const right = document.createElement("div");
       right.innerHTML = `<span class="pill ${u.canCapture ? "good" : ""}">${u.canCapture ? "Can capture" : "No capture"}</span>`;
 
@@ -2500,7 +2524,7 @@
     if(e.key==="e" || e.key==="E"){
       endTurn();
     } else if(e.key==="b" || e.key==="B"){
-      const choice = pickRandomBase(Game.currentPlayer);
+      const choice = pickNextBase(Game.currentPlayer);
       if(choice){
         selectBuilding(choice.b, choice.x, choice.y);
         openShopIfOnOwnedBase();
