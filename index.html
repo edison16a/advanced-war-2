@@ -910,7 +910,8 @@
 
     coChoice: { 1:"ANDY", 2:"ANDY" },
     coMeter: { 1:0, 2:0 },
-    coState: { 1:null, 2:null }
+    coState: { 1:null, 2:null },
+    dmgDetail: false
   };
 
   /***********************************************************************
@@ -1054,13 +1055,26 @@
   function owningPlayer(id){ return PLAYERS.find(p=>p.id===id) || PLAYERS[0]; }
 
   /***********************************************************************
-   * NEW: Tile defense stat per your rule
-   * - All building tiles: 3
-   * - Ground tiles: 0
+   * Tile defense (stars)
    ***********************************************************************/
+  function defenseStarsForTerrainId(id){
+    if(id==="ROAD" || id==="WATER") return 0; // road/bridge/water = 0
+    if(id==="PLAINS") return 1;
+    if(id==="FOREST") return 2;
+    if(id==="MOUNTAIN") return 4;
+    return 0;
+  }
+
   function tileDefenseStat(x,y){
     const b = buildingAt(x,y);
-    return b ? 3 : 0;
+    if(b){
+      if(b.kindId==="HQ") return 4;
+      if(b.kindId==="BASE" || b.kindId==="CITY") return 3;
+      return 0;
+    }
+    const t = terrainAt(x,y);
+    if(!t) return 0;
+    return defenseStarsForTerrainId(t.id);
   }
 
   /***********************************************************************
@@ -1382,13 +1396,12 @@
       addKV("Move", `${u.def.move} (${u.def.movementType})`);
       addKV("Range", rangeText);
       addKV("Status", `${u.moved ? "Moved" : "Can Move"} / ${u.acted ? "Attacked" : "Can Atk"}`);
-      addKV("Damage", damageProfileText(u.def.id).replace("Damage: ",""));
+      addKV("Damage", damageDisplayText(u.def.id).replace("Damage: ",""));
 
       const tile = terrainAt(u.x,u.y);
       addKV("Terrain", tile.name);
-
       const b = buildingAt(u.x,u.y);
-      addKV("Tile Defense", String(tileDefenseStat(u.x,u.y))); // NEW per your rule
+      addKV("Tile Cover", formatStars(tileDefenseStat(u.x,u.y)));
 
       if(b){
         addKV("Building", b.def.name + (b.owner ? ` (Owned by P${b.owner})` : " (Neutral)"));
@@ -1408,13 +1421,15 @@
 
       const dmgPill = document.createElement("span");
       dmgPill.className = "pill warn";
-      dmgPill.textContent = damageProfileText(u.def.id);
+      dmgPill.style.cursor = "pointer";
+      const setDmgText = ()=>{ dmgPill.textContent = damageDisplayText(u.def.id); };
+      setDmgText();
+      dmgPill.title = "Click to toggle detailed damage view";
+      dmgPill.addEventListener("click", ()=>{
+        Game.dmgDetail = !Game.dmgDetail;
+        updateSelectionPanel();
+      });
       pills.push(dmgPill);
-
-      const armorPill = document.createElement("span");
-      armorPill.className = "pill";
-      armorPill.textContent = `Armor ${u.def.armor ?? 0}`;
-      pills.push(armorPill);
 
       const capPill = document.createElement("span");
       capPill.className = "pill " + (u.def.canCapture ? "good" : "");
@@ -1440,7 +1455,7 @@
 
       const defPill = document.createElement("span");
       defPill.className = "pill";
-      defPill.textContent = `Tile Def: ${tileDefenseStat(u.x,u.y)}`;
+      defPill.textContent = `Cover: ${formatStars(tileDefenseStat(u.x,u.y))}`;
 
       const row1 = document.createElement("div");
       row1.className = "selRow center";
@@ -1448,9 +1463,8 @@
       row1.appendChild(hpPill);
 
       const row2 = document.createElement("div");
-      row2.className = "selRow";
+      row2.className = "selRow center";
       row2.appendChild(dmgPill);
-      row2.appendChild(armorPill);
       row2.appendChild(capPill);
 
       const row3 = document.createElement("div");
@@ -1487,7 +1501,7 @@
 
       const defPill = document.createElement("span");
       defPill.className = "pill";
-      defPill.textContent = `Tile Def: ${tileDefenseStat(Game.sel.x, Game.sel.y)}`;
+      defPill.textContent = `Cover: ${formatStars(tileDefenseStat(Game.sel.x, Game.sel.y))}`;
 
       const terrainPill = document.createElement("span");
       terrainPill.className = "pill";
@@ -1520,7 +1534,7 @@
 
       const defPill = document.createElement("span");
       defPill.className = "pill";
-      defPill.textContent = "Tile Def: 0";
+      defPill.textContent = `Cover: ${formatStars(tileDefenseStat(Game.sel.x, Game.sel.y))}`;
 
       const row1 = document.createElement("div");
       row1.className = "selRow center";
@@ -1741,6 +1755,7 @@
   function useCOPower(playerId, tier){
     const cost = tier==="SUPER" ? CO_SUPER_COST : CO_POWER_COST;
     if((Game.coMeter[playerId] ?? 0) < cost) return;
+    if(Game.coState[playerId]) return; // already active
     Game.coMeter[playerId] -= cost;
     Game.coState[playerId] = tier;
     const co = getCOChoice(playerId);
@@ -1785,28 +1800,36 @@
   function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax, leftText="", rightText="" }){
     return new Promise(resolve=>{
       if(!battleOverlay) return resolve();
+      // Force blue (P1) on left, red (P2) on right by swapping when needed
+      let left = { img:attackerImg, label:attackerLabel, before:atkBefore, after:atkAfter, max:atkMax, dmg:leftText };
+      let right = { img:defenderImg, label:defenderLabel, before:defBefore, after:defAfter, max:defMax, dmg:rightText };
+      if(attacker && defender && attacker.owner===2 && defender.owner===1){
+        left = { img:defenderImg, label:defenderLabel, before:defBefore, after:defAfter, max:defMax, dmg:rightText };
+        right = { img:attackerImg, label:attackerLabel, before:atkBefore, after:atkAfter, max:atkMax, dmg:leftText };
+      }
+
       battleOverlay.style.display = "flex";
 
-      battleLeftImg.src = attackerImg || "";
-      battleRightImg.src = defenderImg || "";
-      battleLeftLabel.textContent = attackerLabel;
-      battleRightLabel.textContent = defenderLabel;
-      if(battleLeftDmg) battleLeftDmg.textContent = leftText;
-      if(battleRightDmg) battleRightDmg.textContent = rightText;
+      battleLeftImg.src = left.img || "";
+      battleRightImg.src = right.img || "";
+      battleLeftLabel.textContent = left.label;
+      battleRightLabel.textContent = right.label;
+      if(battleLeftDmg) battleLeftDmg.textContent = left.dmg;
+      if(battleRightDmg) battleRightDmg.textContent = right.dmg;
 
       battleLeftImg.parentElement.classList.remove("hitLeft");
       battleRightImg.parentElement.classList.remove("hitRight");
 
-      setHPBar(battleLeftHP, atkBefore, atkMax || atkBefore || 1);
-      setHPBar(battleRightHP, defBefore, defMax || defBefore || 1);
+      setHPBar(battleLeftHP, left.before, left.max || left.before || 1);
+      setHPBar(battleRightHP, right.before, right.max || right.before || 1);
 
       void battleOverlay.offsetWidth; // reflow
 
       setTimeout(()=>{
         battleLeftImg.parentElement.classList.add("hitLeft");
         battleRightImg.parentElement.classList.add("hitRight");
-        setHPBar(battleLeftHP, atkAfter, atkMax || Math.max(atkBefore,1));
-        setHPBar(battleRightHP, defAfter, defMax || Math.max(defBefore,1));
+        setHPBar(battleLeftHP, left.after, left.max || Math.max(left.before,1));
+        setHPBar(battleRightHP, right.after, right.max || Math.max(right.before,1));
       }, 30);
 
       setTimeout(()=>{
@@ -2020,20 +2043,48 @@
     return `${rangeMin}-${rangeMax}`;
   }
 
+  function formatStars(count){
+    const stars = count>0 ? "⭐".repeat(count) : "—";
+    return stars;
+  }
+
+  function damageRangeSimple(attackerId){
+    const table = DAMAGE_TABLE[attackerId];
+    if(!table) return {min:0, max:0};
+    let min = Infinity, max = -Infinity;
+    for(const rng of Object.values(table)){
+      if(!rng) continue;
+      min = Math.min(min, rng[0]);
+      max = Math.max(max, rng[1]);
+    }
+    if(min===Infinity) return {min:0,max:0};
+    return {min, max};
+  }
+
+  function damageDisplayText(attackerId){
+    if(Game.dmgDetail){
+      return damageProfileText(attackerId);
+    }
+    const {min,max} = damageRangeSimple(attackerId);
+    return `Damage: ${min}-${max}`;
+  }
+
   function attackMultiplier(attacker, defender){
     const co = getCOChoice(attacker.owner);
     const state = Game.coState[attacker.owner];
     const direct = isDirectUnit(attacker);
     let mult = 1;
     if(co.id==="MAX"){
-      if(direct) mult *= 1.2;
-      if(direct && state==="POWER") mult *= 1.4;
-      if(direct && state==="SUPER") mult *= 1.6;
+      if(direct){
+        if(state==="SUPER") mult = 1.6;
+        else if(state==="POWER") mult = 1.4;
+        else mult = 1.2;
+      }
     }
     if(co.id==="SAMI" && isInfantry(attacker)){
-      mult *= 1.2;
-      if(state==="POWER") mult *= 1.5;
-      if(state==="SUPER") mult *= 1.6;
+      if(state==="SUPER") mult = 1.6;
+      else if(state==="POWER") mult = 1.5;
+      else mult = 1.2;
     }
     if(co.id==="ANDY" && state==="SUPER"){
       mult *= 1.2;
@@ -2054,19 +2105,25 @@
    * Combat
    ***********************************************************************/
   function terrainDefenseBonus(x,y){
-    const t = terrainAt(x,y);
-    let def = t.def;
-    const b = buildingAt(x,y);
-    if(b) def += b.def.def;
-    return def;
+    // stars * (defender HP / 10) => % reduction
+    const stars = tileDefenseStat(x,y);
+    return stars;
   }
 
   function computeDamageRoll(attacker, defender){
     const entry = getDamageRangeEntry(attacker.def.id, defender.def.id);
     if(entry){
       const [minBase, maxBase] = entry;
-      const min = clamp(minBase, 0, defender.def.maxHP);
-      const max = clamp(maxBase, min, defender.def.maxHP);
+      const hpScale = attacker.hp / attacker.def.maxHP;
+      const mult = attackMultiplier(attacker, defender);
+      const stars = terrainDefenseBonus(defender.x, defender.y);
+      const defScale = 1 - clamp(stars * (defender.hp / defender.def.maxHP) * 0.1, 0, 0.9);
+
+      const scaledMin = minBase * hpScale * mult * defScale;
+      const scaledMax = maxBase * hpScale * mult * defScale;
+
+      const min = clamp(Math.floor(scaledMin), 0, defender.def.maxHP);
+      const max = clamp(Math.ceil(scaledMax), min, defender.def.maxHP);
       const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
       return { roll, min, max };
     }
@@ -2079,9 +2136,7 @@
     raw *= attackMultiplier(attacker, defender);
 
     const defBonus = terrainDefenseBonus(defender.x, defender.y);
-    const armor = defender.def.armor ?? 0;
-
-    const reduction = clamp(0.10*defBonus + 0.08*armor, 0, 0.65);
+    const reduction = clamp(0.10*defBonus, 0, 0.9);
     const base = Math.max(0, raw * (1 - reduction));
 
     const min = Math.max(0, Math.floor(base * 0.85));
@@ -2347,9 +2402,23 @@
                         <div class="meta">Cost ${price} • Move ${def.move} (${def.movementType}) • Range ${rangeLabel} • ${role}</div>`;
       const statRow = document.createElement("div");
       statRow.className = "shopStats";
-      statRow.innerHTML = `<span class="pill warn">${dmgProfile}</span>
-                           <span class="pill">Armor: ${def.armor ?? 0}</span>
-                           ${def.canCapture ? '<span class="pill good">Can capture</span>' : '<span class="pill">No capture</span>'}`;
+      const dmgPill = document.createElement("span");
+      dmgPill.className = "pill warn";
+      dmgPill.style.cursor = "pointer";
+      const setDmgText = ()=>{ dmgPill.textContent = damageDisplayText(def.id); };
+      setDmgText();
+      dmgPill.title = "Click to toggle detailed damage view";
+      dmgPill.addEventListener("click", ()=>{
+        Game.dmgDetail = !Game.dmgDetail;
+        renderShop();
+      });
+      statRow.appendChild(dmgPill);
+
+      const capPill = document.createElement("span");
+      capPill.className = "pill " + (def.canCapture ? "good" : "");
+      capPill.textContent = def.canCapture ? "Can capture" : "No capture";
+      statRow.appendChild(capPill);
+
       info.appendChild(statRow);
       left.appendChild(info);
       div.appendChild(left);
@@ -2455,8 +2524,8 @@
       left.appendChild(label);
 
       const right = document.createElement("div");
-      right.innerHTML = `<span class="pill">Tile Def (click): ${t.name === "Water" ? "0" : "0"}</span>`;
-      // defense shown is per your rule; terrain always ground => 0 (buildings handled separately)
+      const stars = defenseStarsForTerrainId(t.id);
+      right.innerHTML = `<span class="pill">Cover: ${formatStars(stars)}</span>`;
 
       row.appendChild(left);
       row.appendChild(right);
