@@ -1350,7 +1350,7 @@
 
     const income = countOwnedIncome(Game.currentPlayer);
     Game.funds[Game.currentPlayer] += income;
-    logLine(`${owningPlayer(Game.currentPlayer).name} receives ${income} funds (income).`, Game.currentPlayer);
+    logLine(`${owningPlayer(Game.currentPlayer).name} receives $${income} funds (income).`, Game.currentPlayer);
 
     resetUnitsForTurn(Game.currentPlayer);
     grantCOMeter(Game.currentPlayer, 10);
@@ -1814,7 +1814,7 @@
     turnOverlayPlayer.className = pillClass;
     turnOverlayPlayer.textContent = `Player ${playerId}`;
     turnOverlayDay.textContent = `Day ${day}`;
-    turnOverlayIncome.textContent = `Income +${income}`;
+    turnOverlayIncome.textContent = `Income +$${income}`;
 
     if(turnOverlayTimer) clearTimeout(turnOverlayTimer);
     turnOverlay.classList.remove("show");
@@ -2460,11 +2460,10 @@
       const info = document.createElement("div");
       const role = def.indirect ? "Indirect fire" : "Direct fire";
       const rangeLabel = formatRangeText(def.rangeMin, def.rangeMax, def.move, def.id==="RKT");
-      const dmgProfile = damageProfileText(def.id);
-      info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>
-                        <div class="meta">Cost ${price} • Move ${def.move} (${def.movementType}) • Range ${rangeLabel} • ${role}</div>`;
+      info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>`;
       const statRow = document.createElement("div");
       statRow.className = "shopStats";
+      statRow.style.marginTop = "8px";
       const dmgPill = document.createElement("span");
       dmgPill.className = "pill warn";
       dmgPill.style.cursor = "pointer";
@@ -2487,10 +2486,29 @@
         const desc = document.createElement("div");
         desc.className = "meta";
         desc.textContent = blurb;
+        desc.style.marginBottom = "6px";
         info.appendChild(desc);
       }
 
+      const moveRow = document.createElement("div");
+      moveRow.className = "shopStats";
+      moveRow.style.marginTop = "6px";
+      const movePill = document.createElement("span");
+      movePill.className = "pill good";
+      movePill.textContent = `Move ${def.move} (${def.movementType})`;
+      const rangePill = document.createElement("span");
+      rangePill.className = "pill";
+      rangePill.style.background = "#152252";
+      rangePill.textContent = `Range ${rangeLabel}`;
+      const rolePill = document.createElement("span");
+      rolePill.className = "pill warn";
+      rolePill.textContent = role;
+      moveRow.appendChild(movePill);
+      moveRow.appendChild(rangePill);
+      moveRow.appendChild(rolePill);
+
       info.appendChild(statRow);
+      info.appendChild(moveRow);
       left.appendChild(info);
       div.appendChild(left);
 
@@ -2503,7 +2521,7 @@
       const btn = document.createElement("button");
       btn.className = "btn good";
       btn.style.marginLeft = "8px";
-      btn.textContent = "Build";
+      btn.textContent = `$${price}`;
       btn.disabled = (!canAfford) || occupied || !validSel;
 
       btn.addEventListener("click", ()=>{
@@ -2541,7 +2559,7 @@
     u.acted = true;
 
     Game.units.push(u);
-    logLine(`${owningPlayer(Game.currentPlayer).name} builds ${def.name} for ${price}.`, Game.currentPlayer);
+      logLine(`${owningPlayer(Game.currentPlayer).name} builds ${def.name} for $${price}.`, Game.currentPlayer);
 
     updateUI();
     renderShop();
@@ -2820,10 +2838,10 @@
     const co1 = getCOChoice(1);
     const co2 = getCOChoice(2);
 
-    if(p1TopIncome) p1TopIncome.textContent = `Income ${income1}`;
-    if(p2TopIncome) p2TopIncome.textContent = `Income ${income2}`;
-    elP1Funds.textContent = `Funds ${Game.funds[1]}`;
-    elP2Funds.textContent = `Funds ${Game.funds[2]}`;
+    if(p1TopIncome) p1TopIncome.textContent = `Income $${income1}`;
+    if(p2TopIncome) p2TopIncome.textContent = `Income $${income2}`;
+    elP1Funds.textContent = `Funds $${Game.funds[1]}`;
+    elP2Funds.textContent = `Funds $${Game.funds[2]}`;
     if(p1TopCOName) p1TopCOName.textContent = co1.name;
     if(p2TopCOName) p2TopCOName.textContent = co2.name;
     setCOAvatar(p1TopAvatar, co1, 1);
