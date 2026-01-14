@@ -61,7 +61,9 @@
       border-radius:12px;
       padding:10px;
       line-height:1.25;
+      scrollbar-width:none;
     }
+    #log::-webkit-scrollbar{display:none;}
     #log .line{margin:0 0 8px 0}
     #log .p1{color:#7cc6ff}
     #log .p2{color:#ff8aa7}
@@ -155,10 +157,121 @@
       height:100%;background:#74ff8a;transition:width 0.4s ease;
     }
     .battleLabel{font-weight:700}
+    .battleDamage{font-weight:800;font-size:13px;color:#e8eeff;min-height:16px}
+    .battleDamage.sub{font-weight:700;font-size:12px;color:#a9b6e6}
     .hitLeft{animation:hitLeft 0.35s ease;}
     .hitRight{animation:hitRight 0.35s ease;}
     @keyframes hitLeft{0%{transform:translateX(0);}50%{transform:translateX(18px);}100%{transform:translateX(0);}}
     @keyframes hitRight{0%{transform:translateX(0);}50%{transform:translateX(-18px);}100%{transform:translateX(0);}}
+
+    /* Stats header */
+    #statsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .playerCard{
+      background:#0a1026;
+      border:1px solid #23346b;
+      border-radius:12px;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      transition:border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .playerCard.active{box-shadow:0 0 0 1px rgba(93,214,255,0.35);}
+    .playerCardHeader{display:flex;align-items:center;gap:10px}
+    .coAvatar.mini{width:48px;height:48px}
+    .playerCardHeader{position:relative}
+    .coTooltip{
+      display:none;
+      position:fixed;
+      top:58px;left:50%;
+      transform:translateX(-50%);
+      z-index:20;
+      background:#0b1433;
+      border:1px solid #23346b;
+      border-radius:10px;
+      padding:8px 10px;
+      width:260px;
+      max-width:90vw;
+      box-shadow:0 10px 25px rgba(0,0,0,0.4);
+    }
+    .coTooltip.show{display:block;}
+    .playerText .playerName{font-weight:800;font-size:14px}
+    .playerText .playerCO{font-size:12px;color:#a9b6e6}
+    .playerStats{display:flex;gap:8px;flex-wrap:wrap}
+    .pill.mini{font-size:12px;padding:4px 8px}
+    .playerTopActions{display:flex;gap:6px;flex-wrap:wrap}
+    .playerTopMeter{width:100%;max-width:220px}
+    #panel>.sep:first-of-type{margin-top:4px;margin-bottom:6px}
+    /* Characters & Income */
+    #coSection{background:#0a1026;border:1px solid #23346b;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
+    #coSection{display:none!important;}
+    .coCards{display:flex;flex-direction:column;gap:10px}
+    .coCard{background:#0b1433;border:1px solid #23346b;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+    .coRow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .coSelection{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+    .coSelection:hover{border-color:#4a67d6}
+    .coSelection{border:1px dashed #2a3f86;border-radius:10px;padding:8px}
+    .coAvatar{
+      width:56px;height:56px;border-radius:12px;
+      background:linear-gradient(135deg,#1b2c69,#152252);
+      border:1px solid #2a3f86;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;color:#e8eeff;font-size:18px;flex-shrink:0;
+      overflow:hidden;
+    }
+    .coAvatar img{width:100%;height:100%;object-fit:cover;display:block;}
+    .coAvatar.editable{position:relative;cursor:pointer;}
+    .coAvatar.editable::after{
+      content:"✎";
+      position:absolute;
+      bottom:4px;right:4px;
+      width:18px;height:18px;
+      border-radius:6px;
+      background:rgba(5,8,20,0.8);
+      border:1px solid #4a67d6;
+      color:#e8eeff;
+      font-size:11px;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transition:opacity 0.2s ease;
+      pointer-events:none;
+    }
+    .coAvatar.editable:hover::after{opacity:1;}
+    .coText{display:flex;flex-direction:column;gap:4px}
+    .coName{font-weight:800;font-size:14px}
+    .coBuff{font-size:12px;color:#a9b6e6;line-height:1.35}
+    .coBuff.small{font-size:11px}
+    .coPill{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid #2a3f86}
+    .coPill.p1{color:#a9d9ff;border-color:#4a67d6}
+    .coPill.p2{color:#ffc1cd;border-color:#ff5d7a}
+    .btn.tiny{padding:4px 8px;font-size:12px;border-radius:8px}
+    .coHelp{font-size:12px;color:#a9b6e6;line-height:1.4}
+    .abilityLine{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;margin-top:2px}
+    .abilityBadge{padding:3px 7px;border-radius:8px;border:1px solid #2a3f86;font-size:11px;font-weight:700;color:#e8eeff;background:#11204a}
+    .abilityCopy{font-size:12px;color:#c9d4ff;line-height:1.35}
+    .coMeter{position:relative;width:100%;height:10px;border-radius:999px;background:#0a1026;border:1px solid #23346b;overflow:hidden}
+    .coMeterFill{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,#4a67d6,#5dd6ff);border-radius:999px;transition:width 0.2s ease}
+    .coMeterLabel{font-size:11px;color:#a9b6e6;margin-top:4px}
+    .coActions{display:flex;gap:6px;flex-wrap:wrap}
+
+    /* CO modal */
+    #coModal{position:fixed;inset:0;background:rgba(5,8,20,0.8);display:none;align-items:center;justify-content:center;z-index:7000}
+    #coModal .modalBox{width:90vw;max-width:720px;background:#0a1026;border:1px solid #23346b;border-radius:14px;padding:14px;box-shadow:0 20px 40px rgba(0,0,0,0.55);}
+    .coList{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:70vh;overflow:auto;padding-right:4px}
+    .coList{scrollbar-width:none;}
+    .coList::-webkit-scrollbar{display:none;}
+    .coOption{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:#0b1433;border:1px solid #23346b;border-radius:10px;padding:10px}
+    .coOption .coText{gap:2px}
+    .coOption .coName{font-size:15px}
+    .coOption .coBuff{font-size:12px}
+    .coOption .coBuff.small{font-size:11px}
+
+    /* Turn overlay */
+    #turnOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:6500;pointer-events:none;background:radial-gradient(circle at 30% 30%,rgba(93,214,255,0.12),transparent 45%),radial-gradient(circle at 70% 70%,rgba(255,93,122,0.12),transparent 45%)}
+    #turnOverlay .turnBox{min-width:320px;max-width:520px;background:#0b1433;border:1px solid #23346b;border-radius:16px;padding:16px;box-shadow:0 20px 40px rgba(0,0,0,0.45);transform:translateY(20px);opacity:0;transition:opacity 0.3s ease,transform 0.3s ease}
+    #turnOverlay.show .turnBox{opacity:1;transform:translateY(0)}
+    .turnMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .turnIncome{font-size:18px;font-weight:800}
+    .turnCO{font-size:13px;color:#a9b6e6;line-height:1.35}
   </style>
 </head>
 <body>
@@ -221,13 +334,57 @@
         </div>
       </div>
 
-      <div class="sep"></div>
 
-      <div class="kv" id="stats">
-        <div>Current Player</div><div id="curPlayer" class="pill">—</div>
-        <div>Day</div><div id="day">1</div>
-        <div>Player 1 Funds</div><div id="p1Funds">0</div>
-        <div>Player 2 Funds</div><div id="p2Funds">0</div>
+
+      <div id="statsGrid">
+        <div class="playerCard" id="p1Card">
+          <div class="playerCardHeader">
+            <div class="coAvatar mini editable" id="p1TopAvatar" title="Change CO"></div>
+            <div class="playerText">
+              <div class="playerName">Player 1</div>
+              <div class="playerCO" id="p1TopCOName">Andy</div>
+            </div>
+            <div class="coTooltip" id="p1TopTooltip"></div>
+          </div>
+          <div class="playerStats">
+            <span class="pill mini" id="p1Funds">Funds 0</span>
+            <span class="pill mini" id="p1TopIncome">Income 0</span>
+          </div>
+          <div class="playerTopActions" id="p1TopActions">
+            <button class="btn tiny primary" id="p1TopPower">Power</button>
+            <button class="btn tiny primary" id="p1TopSuper">Super</button>
+          </div>
+          <div class="playerTopMeter coMeter playerTopMeter"><div class="coMeterFill" id="p1TopMeterFill"></div></div>
+        </div>
+        <div class="playerCard" id="p2Card">
+          <div class="playerCardHeader">
+            <div class="coAvatar mini editable" id="p2TopAvatar" title="Change CO"></div>
+            <div class="playerText">
+              <div class="playerName">Player 2</div>
+              <div class="playerCO" id="p2TopCOName">Andy</div>
+            </div>
+            <div class="coTooltip" id="p2TopTooltip"></div>
+          </div>
+          <div class="playerStats">
+            <span class="pill mini" id="p2Funds">Funds 0</span>
+            <span class="pill mini" id="p2TopIncome">Income 0</span>
+          </div>
+          <div class="playerTopActions" id="p2TopActions">
+            <button class="btn tiny primary" id="p2TopPower">Power</button>
+            <button class="btn tiny primary" id="p2TopSuper">Super</button>
+          </div>
+          <div class="playerTopMeter coMeter playerTopMeter"><div class="coMeterFill" id="p2TopMeterFill"></div></div>
+        </div>
+      </div>
+
+      <div id="selectionBox">
+        <div class="big" style="font-size:16px">Tile/Troop Info</div>
+        <div class="muted" id="selHint">Click a unit, building, or tile.</div>
+        <br>
+        
+        <div class="kv" id="selKv"></div>
+        
+        <div class="shopStats" id="selStats"></div>
       </div>
 
       <div class="sep"></div>
@@ -243,14 +400,58 @@
 
       <div class="sep"></div>
 
-      <div id="selectionBox">
-        <div class="big" style="font-size:16px">Tile/Troop Info</div>
-        <div class="muted" id="selHint">Click a unit, building, or tile.</div>
-        <br>
-        
-        <div class="kv" id="selKv"></div>
-        
-        <div class="shopStats" id="selStats"></div>
+      <div id="coSection">
+        <div class="big" style="font-size:16px">Powers</div>
+        <div class="coHelp">Day-to-day buffs are always on. CO Power / Super are burst abilities (pretend the meter fills as you fight; trigger when full). Click a commander card to swap and preview their kit.</div>
+        <div class="coCards">
+          <div class="coCard" data-player="1">
+            <div class="coRow">
+              <div class="coPill p1">Player 1 (Blue)</div>
+              <div style="flex:1;min-width:180px">
+                <div class="coMeter"><div class="coMeterFill" id="p1MeterFill"></div></div>
+                <div class="coMeterLabel" id="p1MeterLabel">Meter 0%</div>
+              </div>
+            </div>
+            <div class="coSelection" data-player="1" id="p1COCard">
+              <div class="coAvatar" id="p1COAvatar">P1</div>
+              <div class="coText">
+                <div class="coName" id="p1COName">Andy</div>
+                <div class="coBuff" id="p1COSpecialty">No strengths or weaknesses.</div>
+                <div class="coBuff small" id="p1COPower">CO Power: —</div>
+                <div class="coBuff small" id="p1COSuper">Super CO Power: —</div>
+              </div>
+              <button class="btn tiny" data-player="1" id="p1ChooseCO">Choose</button>
+            </div>
+            <div class="coActions">
+              <button class="btn tiny" id="p1PowerBtn">Power</button>
+              <button class="btn tiny primary" id="p1SuperBtn">Super</button>
+            </div>
+          </div>
+
+          <div class="coCard" data-player="2">
+            <div class="coRow">
+              <div class="coPill p2">Player 2 (Red)</div>
+              <div style="flex:1;min-width:180px">
+                <div class="coMeter"><div class="coMeterFill" id="p2MeterFill"></div></div>
+                <div class="coMeterLabel" id="p2MeterLabel">Meter 0%</div>
+              </div>
+            </div>
+            <div class="coSelection" data-player="2" id="p2COCard">
+              <div class="coAvatar" id="p2COAvatar">P2</div>
+              <div class="coText">
+                <div class="coName" id="p2COName">Andy</div>
+                <div class="coBuff" id="p2COSpecialty">No strengths or weaknesses.</div>
+                <div class="coBuff small" id="p2COPower">CO Power: —</div>
+                <div class="coBuff small" id="p2COSuper">Super CO Power: —</div>
+              </div>
+              <button class="btn tiny" data-player="2" id="p2ChooseCO">Choose</button>
+            </div>
+            <div class="coActions">
+              <button class="btn tiny" id="p2PowerBtn">Power</button>
+              <button class="btn tiny primary" id="p2SuperBtn">Super</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="sep"></div>
@@ -265,13 +466,40 @@
       <div class="battleSide" id="battleLeft">
         <div class="battleImg"><img id="battleLeftImg" alt=""></div>
         <div class="battleLabel" id="battleLeftLabel"></div>
+        <div class="battleDamage" id="battleLeftDmg"></div>
         <div class="battleHP"><div class="battleHPFill" id="battleLeftHP"></div></div>
       </div>
       <div class="battleSide" id="battleRight">
         <div class="battleImg"><img id="battleRightImg" alt=""></div>
         <div class="battleLabel" id="battleRightLabel"></div>
+        <div class="battleDamage sub" id="battleRightDmg"></div>
         <div class="battleHP"><div class="battleHPFill" id="battleRightHP"></div></div>
       </div>
+    </div>
+  </div>
+
+  <div id="coModal">
+    <div class="modalBox">
+      <div class="headerRow">
+        <div>
+          <div class="big" style="font-size:16px">Choose CO</div>
+          <div class="muted" id="coModalHint">Pick a commander to set their buffs.</div>
+        </div>
+        <br>
+        <button class="btn" id="closeCoModal">Close (ESC)</button>
+      </div>
+      <div class="sep"></div>
+      <div class="coList" id="coList"></div>
+    </div>
+  </div>
+
+  <div id="turnOverlay">
+    <div class="turnBox" id="turnOverlayBox">
+      <div class="turnMeta">
+        <span class="coPill p1" id="turnOverlayPlayer">Player</span>
+        <span class="pill" id="turnOverlayDay">Day</span>
+      </div>
+      <div class="turnIncome" id="turnOverlayIncome">Income +0</div>
     </div>
   </div>
 
@@ -442,6 +670,49 @@
     { id:2, name:"Player 2", color:COLORS.p2, dark:COLORS.p2Dark }
   ];
 
+  const CO_DATA = {
+    ANDY: {
+      id:"ANDY",
+      name:"Andy",
+      img:"andy.png",
+      specialty:"Balanced: no passive buffs/penalties.",
+      power:"Hyper Repair: Heals all owned units by 2 HP; Activating the ability refreshes spent units so they can act again this turn.",
+      super:"Hyper Upgrade: Heals all owned units by 5 HP, all units gain +1 Move and +20% attack for the turn; Activating the ability refreshes spent units so they can act again this turn."
+    },
+    MAX: {
+      id:"MAX",
+      name:"Max",
+      img:"max.png",
+      specialty:"Direct units +20% attack; indirect units -1 max range.",
+      power:"Max Force: Direct units +1 Move and ~+40% attack this turn; Activating the ability refreshes spent units so they can act again this turn.",
+      super:"Max Blast: Direct units +2 Move and ~+60% attack this turn; Activating the ability refreshes spent units so they can act again this turn."
+    },
+    SAMI: {
+      id:"SAMI",
+      name:"Sami",
+      img:"sami.png",
+      specialty:"Infantry deal ~+20% damage; capture strength ~1.5× HP.",
+      power:"Double Time: Infantry +1 Move, ~+50% damage, capture strength 2× HP; Activating the ability refreshes spent units so they can act again this turn.",
+      super:"Victory March: Infantry +2 Move, ~+60% damage, captures complete in one turn; Activating the ability refreshes spent units so they can act again this turn."
+    },
+    NELL: {
+      id:"NELL",
+      name:"Nell",
+      img:"nell.png",
+      specialty:"Adds 0–2 extra “luck” damage on every hit.",
+      power:"Lucky Star: Luck range 0–4 extra damage; Activating the ability refreshes spent units so they can act again this turn.",
+      super:"Lady Luck: Luck range 0–6 extra damage; Activating the ability refreshes spent units so they can act again this turn."
+    },
+    HACHI: {
+      id:"HACHI",
+      name:"Hachi",
+      img:"Hachi.png",
+      specialty:"Units cost 10% less in shops.",
+      power:"Barter: Units cost 50% less this turn; Activating the ability refreshes spent units so they can act again this turn.",
+      super:"Merchant Union: Units cost 50% less this turn; Activating the ability refreshes spent units so they can act again this turn."
+    }
+  };
+
   function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
   function inBounds(x,y){ return x>=0 && y>=0 && x<GRID_W && y<GRID_H; }
   function key(x,y){ return x + "," + y; }
@@ -459,10 +730,48 @@
   canvas.width = CANVAS_W;
   canvas.height = CANVAS_H;
 
-  const elCurPlayer = document.getElementById("curPlayer");
-  const elDay = document.getElementById("day");
+  const elCurPlayer = null;
+  const elDay = null;
   const elP1Funds = document.getElementById("p1Funds");
   const elP2Funds = document.getElementById("p2Funds");
+  const p1TopIncome = document.getElementById("p1TopIncome");
+  const p2TopIncome = document.getElementById("p2TopIncome");
+  const p1TopCOName = document.getElementById("p1TopCOName");
+  const p2TopCOName = document.getElementById("p2TopCOName");
+  const p1TopAvatar = document.getElementById("p1TopAvatar");
+  const p2TopAvatar = document.getElementById("p2TopAvatar");
+  const p1Card = document.getElementById("p1Card");
+  const p2Card = document.getElementById("p2Card");
+  const p1TopTooltip = document.getElementById("p1TopTooltip");
+  const p2TopTooltip = document.getElementById("p2TopTooltip");
+  const p1TopActions = document.getElementById("p1TopActions");
+  const p2TopActions = document.getElementById("p2TopActions");
+  const p1TopPower = document.getElementById("p1TopPower");
+  const p2TopPower = document.getElementById("p2TopPower");
+  const p1TopSuper = document.getElementById("p1TopSuper");
+  const p2TopSuper = document.getElementById("p2TopSuper");
+  const p1TopMeterFill = document.getElementById("p1TopMeterFill");
+  const p2TopMeterFill = document.getElementById("p2TopMeterFill");
+  const panelEl = document.getElementById("panel");
+  function showTooltip(tt, anchor){
+    if(!tt || !anchor || !panelEl) return;
+    const panelRect = panelEl.getBoundingClientRect();
+    const anchorRect = anchor.getBoundingClientRect();
+    tt.style.position = "fixed";
+    tt.style.top = `${anchorRect.bottom + 8}px`;
+    let center = panelRect.left + panelRect.width/2;
+    if(p1Card && p2Card){
+      const r1 = p1Card.getBoundingClientRect();
+      const r2 = p2Card.getBoundingClientRect();
+      center = (r1.left + r2.right) / 2;
+    }
+    const width = tt.offsetWidth || 260;
+    tt.style.left = `${center - width/2}px`;
+    tt.classList.add("show");
+  }
+  function hideTooltip(tt){
+    if(tt) tt.classList.remove("show");
+  }
 
   const endTurnBtn = document.getElementById("endTurnBtn");
   const newBtn = document.getElementById("newBtn");
@@ -473,6 +782,43 @@
   const elSelHint = document.getElementById("selHint");
   const elSelKv = document.getElementById("selKv");
   const elSelStats = document.getElementById("selStats");
+
+  const p1COName = document.getElementById("p1COName");
+  const p2COName = document.getElementById("p2COName");
+  const p1COSpecialty = document.getElementById("p1COSpecialty");
+  const p2COSpecialty = document.getElementById("p2COSpecialty");
+  const p1COPower = document.getElementById("p1COPower");
+  const p2COPower = document.getElementById("p2COPower");
+  const p1COSuper = document.getElementById("p1COSuper");
+  const p2COSuper = document.getElementById("p2COSuper");
+  const p1COAvatar = document.getElementById("p1COAvatar");
+  const p2COAvatar = document.getElementById("p2COAvatar");
+  const p1ChooseCO = document.getElementById("p1ChooseCO");
+  const p2ChooseCO = document.getElementById("p2ChooseCO");
+  const p1COCard = document.getElementById("p1COCard");
+  const p2COCard = document.getElementById("p2COCard");
+  const p1MeterFill = document.getElementById("p1MeterFill");
+  const p2MeterFill = document.getElementById("p2MeterFill");
+  const p1MeterLabel = document.getElementById("p1MeterLabel");
+  const p2MeterLabel = document.getElementById("p2MeterLabel");
+  const p1PowerBtn = document.getElementById("p1PowerBtn");
+  const p2PowerBtn = document.getElementById("p2PowerBtn");
+  const p1SuperBtn = document.getElementById("p1SuperBtn");
+  const p2SuperBtn = document.getElementById("p2SuperBtn");
+
+  const coModal = document.getElementById("coModal");
+  const coModalHint = document.getElementById("coModalHint");
+  const coList = document.getElementById("coList");
+  const closeCoModal = document.getElementById("closeCoModal");
+
+  const turnOverlay = document.getElementById("turnOverlay");
+  const turnOverlayBox = document.getElementById("turnOverlayBox");
+  const turnOverlayPlayer = document.getElementById("turnOverlayPlayer");
+  const turnOverlayDay = document.getElementById("turnOverlayDay");
+  const turnOverlayIncome = document.getElementById("turnOverlayIncome");
+
+  let coModalTarget = null;
+  let turnOverlayTimer = null;
 
   const shopBox = document.getElementById("shopBox");
   const shopList = document.getElementById("shopList");
@@ -495,6 +841,8 @@
   const battleRightHP = document.getElementById("battleRightHP");
   const battleLeftLabel = document.getElementById("battleLeftLabel");
   const battleRightLabel = document.getElementById("battleRightLabel");
+  const battleLeftDmg = document.getElementById("battleLeftDmg");
+  const battleRightDmg = document.getElementById("battleRightDmg");
 
   /***********************************************************************
    * Game State
@@ -517,7 +865,11 @@
     atkTiles: new Set(),
 
     hovered: { x:-1, y:-1 },
-    gameOver: false
+    gameOver: false,
+
+    coChoice: { 1:"ANDY", 2:"ANDY" },
+    coMeter: { 1:0, 2:0 },
+    coState: { 1:null, 2:null }
   };
 
   /***********************************************************************
@@ -538,6 +890,7 @@
       hp: def.maxHP,
       moved: false,
       acted: false,
+      actionsLeft: 1,
       spriteIdx
     };
   }
@@ -780,6 +1133,9 @@
     Game.atkTiles = new Set();
     Game.hovered = {x:-1,y:-1};
     Game.gameOver = false;
+    Game.coMeter = {1:0, 2:0};
+    Game.coState = {1:null, 2:null};
+    Game.coChoice = {1:"ANDY", 2:"ANDY"};
 
     generateMap();
 
@@ -821,6 +1177,30 @@
     logBox.scrollTop = logBox.scrollHeight;
   }
 
+  function consumeAction(u){
+    if(!u) return;
+    if(typeof u.actionsLeft!=="number") u.actionsLeft = 1;
+    u.actionsLeft = Math.max(0, u.actionsLeft - 1);
+    if(u.actionsLeft > 0){
+      u.moved = false;
+      u.acted = false;
+    } else {
+      u.moved = true;
+      u.acted = true;
+    }
+  }
+
+  function refreshPlayerUnits(playerId, minActions=1){
+    for(const u of Game.units){
+      if(u.owner===playerId){
+        const targetActions = Math.max(minActions, 1);
+        u.actionsLeft = targetActions;
+        u.moved = false;
+        u.acted = false;
+      }
+    }
+  }
+
   /***********************************************************************
    * Income & Turn Progression
    ***********************************************************************/
@@ -840,14 +1220,18 @@
   function resetUnitsForTurn(playerId){
     for(const u of Game.units){
       if(u.owner===playerId){
+        const dbl = hasDoubleActions(playerId);
         u.moved = false;
         u.acted = false;
+        u.actionsLeft = dbl ? 2 : 1;
       }
     }
   }
 
   function endTurn(){
     if(Game.gameOver) return;
+
+    clearCOState(Game.currentPlayer);
 
     closeShop();
     closeKey(); // NEW
@@ -866,9 +1250,16 @@
     logLine(`${owningPlayer(Game.currentPlayer).name} receives ${income} funds (income).`, Game.currentPlayer);
 
     resetUnitsForTurn(Game.currentPlayer);
+    grantCOMeter(Game.currentPlayer, 10);
 
     updateUI();
     autoOpenShopForCurrentPlayer();
+    showTurnOverlay({
+      playerId: Game.currentPlayer,
+      day: Game.day,
+      income,
+      co: getCOChoice(Game.currentPlayer)
+    });
   }
 
   /***********************************************************************
@@ -937,7 +1328,7 @@
       addKV("HP", `${u.hp}/${u.def.maxHP}`);
       addKV("Move", `${u.def.move} (${u.def.movementType})`);
       addKV("Range", `${u.def.rangeMin}-${u.def.rangeMax}`);
-      addKV("Status", `${u.moved ? "Moved" : "Ready"} / ${u.acted ? "Acted" : "Ready"}`);
+      addKV("Status", `${u.moved ? "Moved" : "Can Move"} / ${u.acted ? "Attacked" : "Can Atk"}`);
 
       const tile = terrainAt(u.x,u.y);
       addKV("Terrain", tile.name);
@@ -987,7 +1378,7 @@
 
       const statusPill = document.createElement("span");
       statusPill.className = "pill";
-      statusPill.textContent = `Status: ${u.moved ? "Moved" : "Ready"} / ${u.acted ? "Acted" : "Ready"}`;
+      statusPill.textContent = `Status: ${u.moved ? "Moved" : "Can Move"} / ${u.acted ? "Attacked" : "Can Atk"}`;
 
       const terrain = terrainAt(u.x,u.y);
       const terrainPill = document.createElement("span");
@@ -1118,6 +1509,218 @@
   }
 
   /***********************************************************************
+   * CO selection & income panel
+   ***********************************************************************/
+  function getCOChoice(playerId){
+    const id = Game.coChoice[playerId] || "ANDY";
+    return CO_DATA[id] || CO_DATA.ANDY;
+  }
+
+  function setCOChoice(playerId, coId){
+    if(!CO_DATA[coId]) return;
+    Game.coChoice[playerId] = coId;
+    renderCOSection();
+    logLine(`${owningPlayer(playerId).name} selects ${CO_DATA[coId].name}.`, playerId);
+  }
+
+  function setCOAvatar(el, co, playerId){
+    if(!el) return;
+    const p = owningPlayer(playerId);
+    el.style.borderColor = p.color;
+    el.style.background = `linear-gradient(135deg, ${p.dark}, ${p.color}55)`;
+    el.innerHTML = "";
+    if(co.img){
+      const img = document.createElement("img");
+      img.src = co.img;
+      img.alt = co.name;
+      el.appendChild(img);
+    } else {
+      el.textContent = co.name.slice(0,1);
+    }
+  }
+
+  function renderCOSection(){
+    const co1 = getCOChoice(1);
+    const co2 = getCOChoice(2);
+
+    p1COName.textContent = co1.name;
+    p2COName.textContent = co2.name;
+    p1COSpecialty.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co1.specialty}</span></div>`;
+    p2COSpecialty.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co2.specialty}</span></div>`;
+    p1COPower.innerHTML = `<div class="abilityLine"><span class="abilityBadge">CO Power</span><span class="abilityCopy">${co1.power}</span></div>`;
+    p2COPower.innerHTML = `<div class="abilityLine"><span class="abilityBadge">CO Power</span><span class="abilityCopy">${co2.power}</span></div>`;
+    p1COSuper.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Super CO</span><span class="abilityCopy">${co1.super}</span></div>`;
+    p2COSuper.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Super CO</span><span class="abilityCopy">${co2.super}</span></div>`;
+
+    setCOAvatar(p1COAvatar, co1, 1);
+    setCOAvatar(p2COAvatar, co2, 2);
+    setCOAvatar(p1TopAvatar, co1, 1);
+    setCOAvatar(p2TopAvatar, co2, 2);
+    if(p1TopTooltip) p1TopTooltip.innerHTML = `${p1COSpecialty.innerHTML}${p1COPower.innerHTML}${p1COSuper.innerHTML}`;
+    if(p2TopTooltip) p2TopTooltip.innerHTML = `${p2COSpecialty.innerHTML}${p2COPower.innerHTML}${p2COSuper.innerHTML}`;
+
+    const m1 = Game.coMeter[1] ?? 0;
+    const m2 = Game.coMeter[2] ?? 0;
+    if(p1MeterFill) p1MeterFill.style.width = `${clamp(m1,0,100)}%`;
+    if(p2MeterFill) p2MeterFill.style.width = `${clamp(m2,0,100)}%`;
+    if(p1TopMeterFill) p1TopMeterFill.style.width = `${clamp(m1,0,100)}%`;
+    if(p2TopMeterFill) p2TopMeterFill.style.width = `${clamp(m2,0,100)}%`;
+    if(p1MeterLabel) p1MeterLabel.textContent = `Meter ${Math.round(m1)}%`;
+    if(p2MeterLabel) p2MeterLabel.textContent = `Meter ${Math.round(m2)}%`;
+
+    const powerCost = 60, superCost = 100;
+    const p1State = Game.coState[1];
+    const p2State = Game.coState[2];
+    const p1PowerDisabled = m1 < powerCost || p1State;
+    const p2PowerDisabled = m2 < powerCost || p2State;
+    const p1SuperDisabled = m1 < superCost || p1State;
+    const p2SuperDisabled = m2 < superCost || p2State;
+    if(p1PowerBtn) p1PowerBtn.disabled = p1PowerDisabled;
+    if(p2PowerBtn) p2PowerBtn.disabled = p2PowerDisabled;
+    if(p1SuperBtn) p1SuperBtn.disabled = p1SuperDisabled;
+    if(p2SuperBtn) p2SuperBtn.disabled = p2SuperDisabled;
+    if(p1TopPower) p1TopPower.disabled = p1PowerDisabled;
+    if(p2TopPower) p2TopPower.disabled = p2PowerDisabled;
+    if(p1TopSuper) p1TopSuper.disabled = p1SuperDisabled;
+    if(p2TopSuper) p2TopSuper.disabled = p2SuperDisabled;
+  }
+
+  function openCOModal(playerId){
+    coModalTarget = playerId;
+    if(coModalHint) coModalHint.textContent = `Assign a CO for Player ${playerId}`;
+    renderCOList();
+    if(coModal) coModal.style.display = "flex";
+  }
+
+  function closeCOModal(){
+    if(coModal) coModal.style.display = "none";
+    coModalTarget = null;
+  }
+
+  function renderCOList(){
+    if(!coList) return;
+    coList.innerHTML = "";
+    const current = Game.coChoice[coModalTarget] || "ANDY";
+    for(const coId of Object.keys(CO_DATA)){
+      const co = CO_DATA[coId];
+      const row = document.createElement("div");
+      row.className = "coOption";
+
+      const avatar = document.createElement("div");
+      avatar.className = "coAvatar";
+      setCOAvatar(avatar, co, coModalTarget || 1);
+
+      const textBox = document.createElement("div");
+      textBox.className = "coText";
+      const name = document.createElement("div");
+      name.className = "coName";
+      name.textContent = co.name;
+      const spec = document.createElement("div");
+      spec.className = "coBuff";
+      spec.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co.specialty}</span></div>`;
+      const power = document.createElement("div");
+      power.className = "coBuff small";
+      power.innerHTML = `<div class="abilityLine"><span class="abilityBadge">CO Power</span><span class="abilityCopy">${co.power}</span></div>`;
+      const sup = document.createElement("div");
+      sup.className = "coBuff small";
+      sup.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Super CO</span><span class="abilityCopy">${co.super}</span></div>`;
+
+      textBox.appendChild(name);
+      textBox.appendChild(spec);
+      textBox.appendChild(power);
+      textBox.appendChild(sup);
+
+      const btn = document.createElement("button");
+      btn.className = "btn tiny";
+      btn.textContent = coId===current ? "Selected" : "Choose";
+      if(coId===current) btn.classList.add("primary");
+      btn.addEventListener("click", ()=>{
+        if(coModalTarget){
+          setCOChoice(coModalTarget, coId);
+          closeCOModal();
+        }
+      });
+
+      row.appendChild(avatar);
+      row.appendChild(textBox);
+      row.appendChild(btn);
+      coList.appendChild(row);
+    }
+  }
+
+  /***********************************************************************
+   * CO meter & powers
+   ***********************************************************************/
+  const CO_POWER_COST = 60;
+  const CO_SUPER_COST = 100;
+
+  function grantCOMeter(playerId, amount){
+    const cur = Game.coMeter[playerId] ?? 0;
+    Game.coMeter[playerId] = clamp(cur + amount, 0, 100);
+  }
+
+  function clearCOState(playerId){
+    Game.coState[playerId] = null;
+  }
+
+  function hasDoubleActions(playerId){
+    return Game.coState[playerId] === "SUPER";
+  }
+
+  function grantExtraActions(playerId, minimum=2){
+    for(const u of Game.units){
+      if(u.owner===playerId){
+        u.actionsLeft = Math.max(u.actionsLeft || 1, minimum);
+        u.moved = false;
+        u.acted = false;
+      }
+    }
+  }
+
+  function healPlayerUnits(playerId, amount){
+    for(const u of Game.units){
+      if(u.owner===playerId){
+        u.hp = clamp(u.hp + amount, 0, u.def.maxHP);
+      }
+    }
+  }
+
+  function useCOPower(playerId, tier){
+    const cost = tier==="SUPER" ? CO_SUPER_COST : CO_POWER_COST;
+    if((Game.coMeter[playerId] ?? 0) < cost) return;
+    Game.coMeter[playerId] -= cost;
+    Game.coState[playerId] = tier;
+    const co = getCOChoice(playerId);
+    logLine(`${owningPlayer(playerId).name} activates ${co.name} ${tier==="SUPER" ? "Super CO Power" : "CO Power"}!`, playerId);
+    if(co.id==="ANDY"){
+      healPlayerUnits(playerId, tier==="SUPER" ? 5 : 2);
+    }
+    refreshPlayerUnits(playerId, tier==="SUPER" ? 2 : 1);
+    renderCOSection();
+    updateUI();
+  }
+
+  function showTurnOverlay({ playerId, day, income, co }){
+    if(!turnOverlay || !turnOverlayBox) return;
+    const pillClass = playerId===1 ? "coPill p1" : "coPill p2";
+    turnOverlayPlayer.className = pillClass;
+    turnOverlayPlayer.textContent = `Player ${playerId}`;
+    turnOverlayDay.textContent = `Day ${day}`;
+    turnOverlayIncome.textContent = `Income +${income}`;
+
+    if(turnOverlayTimer) clearTimeout(turnOverlayTimer);
+    turnOverlay.classList.remove("show");
+    void turnOverlay.offsetWidth;
+    turnOverlay.style.display = "flex";
+    requestAnimationFrame(()=>{ turnOverlay.classList.add("show"); });
+
+    turnOverlayTimer = setTimeout(()=>{
+      turnOverlay.classList.remove("show");
+      setTimeout(()=>{ turnOverlay.style.display = "none"; }, 320);
+    }, 500);
+  }
+
+  /***********************************************************************
    * Battle Overlay
    ***********************************************************************/
   function setHPBar(el, current, max){
@@ -1126,7 +1729,7 @@
     el.style.background = pct>0.66 ? "#74ff8a" : pct>0.33 ? "#ffd166" : "#ff5d7a";
   }
 
-  function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax }){
+  function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax, leftText="", rightText="" }){
     return new Promise(resolve=>{
       if(!battleOverlay) return resolve();
       battleOverlay.style.display = "flex";
@@ -1135,6 +1738,8 @@
       battleRightImg.src = defenderImg || "";
       battleLeftLabel.textContent = attackerLabel;
       battleRightLabel.textContent = defenderLabel;
+      if(battleLeftDmg) battleLeftDmg.textContent = leftText;
+      if(battleRightDmg) battleRightDmg.textContent = rightText;
 
       battleLeftImg.parentElement.classList.remove("hitLeft");
       battleRightImg.parentElement.classList.remove("hitRight");
@@ -1154,7 +1759,7 @@
       setTimeout(()=>{
         battleOverlay.style.display = "none";
         resolve();
-      }, 1000);
+      }, 1300);
     });
   }
 
@@ -1191,7 +1796,7 @@
     if(u.moved) return;
 
     const start = {x:u.x,y:u.y};
-    const maxMove = u.def.move;
+    const maxMove = unitMovePoints(u);
 
     const dist = new Map();
     const prev = new Map();
@@ -1277,8 +1882,7 @@
    ***********************************************************************/
   function computeAttackTilesFromPosition(unit, pos){
     const tiles = new Set();
-    const minR = unit.def.rangeMin;
-    const maxR = unit.def.rangeMax;
+    const { minR, maxR } = getRangeForUnit(unit);
 
     for(let y=0;y<GRID_H;y++){
       for(let x=0;x<GRID_W;x++){
@@ -1298,6 +1902,71 @@
     return target.owner !== unit.owner;
   }
 
+  function isDirectUnit(u){ return !u.def.indirect; }
+  function isInfantry(u){ return u.def.id==="INF"; }
+
+  function unitMoveBonus(u){
+    const co = getCOChoice(u.owner);
+    const state = Game.coState[u.owner];
+    let bonus = 0;
+    if(co.id==="MAX" && isDirectUnit(u)){
+      if(state==="SUPER") bonus += 2;
+      else if(state==="POWER") bonus += 1;
+    }
+    if(co.id==="SAMI" && isInfantry(u)){
+      if(state==="SUPER") bonus += 2;
+      else if(state==="POWER") bonus += 1;
+    }
+    if(co.id==="ANDY" && state==="SUPER"){
+      bonus += 1;
+    }
+    return bonus;
+  }
+
+  function unitMovePoints(u){
+    return u.def.move + unitMoveBonus(u);
+  }
+
+  function getRangeForUnit(u){
+    let minR = u.def.rangeMin;
+    let maxR = u.def.rangeMax;
+    const co = getCOChoice(u.owner);
+    if(co.id==="MAX" && u.def.indirect){
+      maxR = Math.max(minR, maxR-1);
+    }
+    return { minR, maxR };
+  }
+
+  function attackMultiplier(attacker, defender){
+    const co = getCOChoice(attacker.owner);
+    const state = Game.coState[attacker.owner];
+    const direct = isDirectUnit(attacker);
+    let mult = 1;
+    if(co.id==="MAX"){
+      if(direct) mult *= 1.2;
+      if(direct && state==="POWER") mult *= 1.4;
+      if(direct && state==="SUPER") mult *= 1.6;
+    }
+    if(co.id==="SAMI" && isInfantry(attacker)){
+      mult *= 1.2;
+      if(state==="POWER") mult *= 1.5;
+      if(state==="SUPER") mult *= 1.6;
+    }
+    if(co.id==="ANDY" && state==="SUPER"){
+      mult *= 1.2;
+    }
+    return mult;
+  }
+
+  function luckBonus(attacker){
+    const co = getCOChoice(attacker.owner);
+    const state = Game.coState[attacker.owner];
+    if(co.id!=="NELL") return 0;
+    if(state==="SUPER") return randInt(7); // 0-6
+    if(state==="POWER") return randInt(5); // 0-4
+    return randInt(3); // 0-2
+  }
+
   /***********************************************************************
    * Combat
    ***********************************************************************/
@@ -1312,7 +1981,9 @@
   function computeDamageRoll(attacker, defender){
     const atkBase = attacker.def.baseAtk[defender.def.id] ?? 4;
     const hpFactor = attacker.hp / attacker.def.maxHP;
-    const raw = atkBase * (0.75 + 0.75*hpFactor);
+    let raw = atkBase * (0.75 + 0.75*hpFactor);
+
+    raw *= attackMultiplier(attacker, defender);
 
     const defBonus = terrainDefenseBonus(defender.x, defender.y);
     const armor = defender.def.armor ?? 0;
@@ -1322,7 +1993,8 @@
 
     const min = Math.max(1, Math.floor(base * 0.85));
     const max = Math.max(min + 1, Math.ceil(base * 1.15));
-    const roll = clamp(randBetween(min, max), 1, defender.def.maxHP);
+    let roll = clamp(randBetween(min, max), 1, defender.def.maxHP);
+    roll = clamp(roll + luckBonus(attacker), 1, defender.def.maxHP);
     return { roll, min, max };
   }
 
@@ -1336,7 +2008,18 @@
   function canRetaliate(defender, attacker){
     if(defender.def.indirect) return false;
     const d = manhattan({x:defender.x,y:defender.y},{x:attacker.x,y:attacker.y});
-    return d>=defender.def.rangeMin && d<=defender.def.rangeMax;
+    const { minR, maxR } = getRangeForUnit(defender);
+    return d>=minR && d<=maxR;
+  }
+
+  function damageLabel(roll, min, max, prefix=""){
+    const span = (max - min) || 1;
+    const hi = max - Math.max(1, Math.floor(span*0.2));
+    const lo = min + Math.floor(span*0.2);
+    let tag = "Decent!";
+    if(roll >= hi) tag = "Lucky!";
+    else if(roll <= lo) tag = "Glancing!";
+    return `${prefix}${tag} ${roll} Damage Dealt`;
   }
 
   async function performAttack(attacker, defender){
@@ -1357,6 +2040,12 @@
       newAtkHP = clamp(attacker.hp - dmgToAtk, 0, attacker.def.maxHP);
     }
 
+    grantCOMeter(attacker.owner, 15);
+    if(dmgToAtk>0) grantCOMeter(defender.owner, 10);
+
+    const leftText = damageLabel(dmgToDef, atkMin, atkMax, "");
+    const rightText = dmgToAtk>0 ? `Retaliated ${dmgToAtk} Damage` : "No Retaliation";
+
     await showBattleOverlay({
       attacker,
       defender,
@@ -1369,7 +2058,9 @@
       attackerImg: getUnitSpriteSrc(attacker),
       defenderImg: getUnitSpriteSrc(defender),
       atkMax: attacker.def.maxHP,
-      defMax: defender.def.maxHP
+      defMax: defender.def.maxHP,
+      leftText,
+      rightText
     });
 
     defender.hp = newDefHP;
@@ -1390,11 +2081,13 @@
         logLine(`${attacker.def.name} destroyed.`, defender.owner);
         removeUnit(attacker);
       } else {
-        attacker.acted = true;
+        consumeAction(attacker);
       }
     } else {
-      attacker.acted = true;
+      consumeAction(attacker);
     }
+
+    renderCOSection();
   }
 
   /***********************************************************************
@@ -1408,9 +2101,22 @@
 
     if(b.owner === unit.owner && b.capturePoints===20) return false;
 
+    const co = getCOChoice(unit.owner);
+    const state = Game.coState[unit.owner];
     const before = b.capturePoints;
-    const after = clamp(b.capturePoints - unit.hp, 0, 20);
+    let capturePower = unit.hp;
+    if(co.id==="SAMI"){
+      if(state==="SUPER"){
+        capturePower = 99; // one-turn capture
+      } else if(state==="POWER"){
+        capturePower = unit.hp * 2;
+      } else {
+        capturePower = Math.floor(unit.hp * 1.5);
+      }
+    }
+    const after = clamp(b.capturePoints - capturePower, 0, 20);
 
+    const captureDelta = before - after;
     await showBattleOverlay({
       attacker: unit,
       defender: b,
@@ -1423,8 +2129,13 @@
       attackerImg: getUnitSpriteSrc(unit),
       defenderImg: (getBuildingSprite(b.kindId, b.owner ?? 0)||{}).src || "",
       atkMax: unit.def.maxHP,
-      defMax: 20
+      defMax: 20,
+      leftText: `Capture -${captureDelta} Points`,
+      rightText: "No Retaliation"
     });
+
+    grantCOMeter(unit.owner, 20);
+    consumeAction(unit);
 
     b.capturePoints = after;
     logLine(`${owningPlayer(unit.owner).name} captures ${b.def.name}: ${b.capturePoints}/20 remaining.`, unit.owner);
@@ -1450,12 +2161,31 @@
   // UPDATED: include new units; keep existing list concept
   const SHOP_UNITS = ["INF","TANK","MDT","ART","RKT"];
 
+  function canBuildFromBuilding(b, playerId){
+    if(!b || b.owner!==playerId) return false;
+    if(b.kindId==="BASE") return true;
+    const co = getCOChoice(playerId);
+    const state = Game.coState[playerId];
+    if(co.id==="HACHI" && state==="SUPER" && b.kindId==="CITY") return true;
+    return false;
+  }
+
+  function getUnitCost(def, playerId){
+    const co = getCOChoice(playerId);
+    const state = Game.coState[playerId];
+    let cost = def.cost;
+    if(co.id==="HACHI"){
+      if(state==="POWER" || state==="SUPER") cost = Math.floor(cost * 0.5);
+      else cost = Math.floor(cost * 0.9);
+    }
+    return cost;
+  }
+
   function openShopIfOnOwnedBase(){
     if(Game.gameOver) return;
     if(!Game.sel || Game.sel.type!=="building") return;
     const b = Game.sel.building;
-    if(b.kindId!=="BASE") return;
-    if(b.owner !== Game.currentPlayer) return;
+    if(!canBuildFromBuilding(b, Game.currentPlayer)) return;
 
     Game.phase = "SHOP";
     shopBox.style.display = "block";
@@ -1475,21 +2205,22 @@
   function renderShop(){
     shopList.innerHTML = "";
     const funds = Game.funds[Game.currentPlayer];
-    const validSel = Game.sel && Game.sel.type==="building" && Game.sel.building.kindId==="BASE" && Game.sel.building.owner===Game.currentPlayer;
+    const validSel = Game.sel && Game.sel.type==="building" && canBuildFromBuilding(Game.sel.building, Game.currentPlayer);
     const baseX = validSel ? Game.sel.x : -1;
     const baseY = validSel ? Game.sel.y : -1;
 
     if(!validSel){
-      shopHint.textContent = "Select your owned Base to build.";
+      shopHint.textContent = "Select your owned Base to build." + (getCOChoice(Game.currentPlayer).id==="HACHI" && Game.coState[Game.currentPlayer]==="SUPER" ? " (Cities allowed with Hachi Super)" : "");
     } else if(unitAt(baseX, baseY)){
       shopHint.textContent = "Base is occupied; move the unit off to build.";
     } else {
-      shopHint.textContent = "Build units on your base (tile must be empty).";
+      shopHint.textContent = "Build units on your base" + (Game.sel.building.kindId==="CITY" ? " (Hachi Super)" : "") + " (tile must be empty).";
     }
 
     for(const id of SHOP_UNITS){
       const def = UNIT_DEF[id];
-      const canAfford = funds >= def.cost;
+      const price = getUnitCost(def, Game.currentPlayer);
+      const canAfford = funds >= price;
       const occupied = validSel && unitAt(baseX, baseY) !== null;
 
       const div = document.createElement("div");
@@ -1506,7 +2237,7 @@
       const dmgPreview = previewDamageRange(def);
       const role = def.indirect ? "Indirect fire" : "Direct fire";
       info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>
-                        <div class="meta">Cost ${def.cost} • Move ${def.move} (${def.movementType}) • Range ${def.rangeMin}-${def.rangeMax} • ${role}</div>`;
+                        <div class="meta">Cost ${price} • Move ${def.move} (${def.movementType}) • Range ${def.rangeMin}-${def.rangeMax} • ${role}</div>`;
       const statRow = document.createElement("div");
       statRow.className = "shopStats";
       statRow.innerHTML = `<span class="pill warn">Damage roll vs INF: ${dmgPreview.min}-${dmgPreview.max}</span>
@@ -1543,7 +2274,7 @@
     if(Game.gameOver) return;
 
     const b = buildingAt(x,y);
-    if(!b || b.kindId!=="BASE" || b.owner!==Game.currentPlayer) return;
+    if(!b || !canBuildFromBuilding(b, Game.currentPlayer)) return;
 
     if(unitAt(x,y)){
       logLine("Cannot build: base tile occupied.", Game.currentPlayer);
@@ -1551,18 +2282,19 @@
     }
 
     const def = UNIT_DEF[typeId];
-    if(Game.funds[Game.currentPlayer] < def.cost){
+    const price = getUnitCost(def, Game.currentPlayer);
+    if(Game.funds[Game.currentPlayer] < price){
       logLine("Cannot build: insufficient funds.", Game.currentPlayer);
       return;
     }
 
-    Game.funds[Game.currentPlayer] -= def.cost;
+    Game.funds[Game.currentPlayer] -= price;
     const u = makeUnit(typeId, Game.currentPlayer, x, y);
     u.moved = true;
     u.acted = true;
 
     Game.units.push(u);
-    logLine(`${owningPlayer(Game.currentPlayer).name} builds ${def.name} for ${def.cost}.`, Game.currentPlayer);
+    logLine(`${owningPlayer(Game.currentPlayer).name} builds ${def.name} for ${price}.`, Game.currentPlayer);
 
     updateUI();
     renderShop();
@@ -1777,6 +2509,7 @@
     } else if(e.key==="k" || e.key==="K"){
       toggleKey();
     } else if(e.key==="Escape"){
+      closeCOModal();
       closeShop();
       closeKey();
       clearSelection();
@@ -1802,20 +2535,63 @@
   closeShopBtn.addEventListener("click", ()=>{ closeShop(); updateUI(); });
   keyBtn.addEventListener("click", ()=>{ toggleKey(); });
   closeKeyBtn.addEventListener("click", ()=>{ closeKey(); });
+  if(p1ChooseCO) p1ChooseCO.addEventListener("click", ()=>openCOModal(1));
+  if(p2ChooseCO) p2ChooseCO.addEventListener("click", ()=>openCOModal(2));
+  if(p1COCard) p1COCard.addEventListener("click", ()=>openCOModal(1));
+  if(p2COCard) p2COCard.addEventListener("click", ()=>openCOModal(2));
+  if(p1TopAvatar){
+    p1TopAvatar.addEventListener("click", ()=>openCOModal(1));
+    p1TopAvatar.addEventListener("mouseenter", ()=>showTooltip(p1TopTooltip, p1TopAvatar));
+    p1TopAvatar.addEventListener("mouseleave", ()=>hideTooltip(p1TopTooltip));
+  }
+  if(p2TopAvatar){
+    p2TopAvatar.addEventListener("click", ()=>openCOModal(2));
+    p2TopAvatar.addEventListener("mouseenter", ()=>showTooltip(p2TopTooltip, p2TopAvatar));
+    p2TopAvatar.addEventListener("mouseleave", ()=>hideTooltip(p2TopTooltip));
+  }
+  if(p1PowerBtn) p1PowerBtn.addEventListener("click", ()=>useCOPower(1,"POWER"));
+  if(p2PowerBtn) p2PowerBtn.addEventListener("click", ()=>useCOPower(2,"POWER"));
+  if(p1SuperBtn) p1SuperBtn.addEventListener("click", ()=>useCOPower(1,"SUPER"));
+  if(p2SuperBtn) p2SuperBtn.addEventListener("click", ()=>useCOPower(2,"SUPER"));
+  if(p1TopPower) p1TopPower.addEventListener("click", ()=>useCOPower(1,"POWER"));
+  if(p2TopPower) p2TopPower.addEventListener("click", ()=>useCOPower(2,"POWER"));
+  if(p1TopSuper) p1TopSuper.addEventListener("click", ()=>useCOPower(1,"SUPER"));
+  if(p2TopSuper) p2TopSuper.addEventListener("click", ()=>useCOPower(2,"SUPER"));
+  if(closeCoModal) closeCoModal.addEventListener("click", closeCOModal);
+  if(coModal) coModal.addEventListener("click", (e)=>{ if(e.target===coModal) closeCOModal(); });
 
   /***********************************************************************
    * UI Updates
    ***********************************************************************/
   function updateUI(){
     const cp = owningPlayer(Game.currentPlayer);
-    elCurPlayer.textContent = cp.name;
-    elCurPlayer.className = "pill";
-    elCurPlayer.style.borderColor = cp.color;
-    elCurPlayer.style.color = cp.id===1 ? "#a9d9ff" : "#ffc1cd";
+    const income1 = countOwnedIncome(1);
+    const income2 = countOwnedIncome(2);
+    const co1 = getCOChoice(1);
+    const co2 = getCOChoice(2);
 
-    elDay.textContent = String(Game.day);
-    elP1Funds.textContent = String(Game.funds[1]);
-    elP2Funds.textContent = String(Game.funds[2]);
+    if(p1TopIncome) p1TopIncome.textContent = `Income ${income1}`;
+    if(p2TopIncome) p2TopIncome.textContent = `Income ${income2}`;
+    elP1Funds.textContent = `Funds ${Game.funds[1]}`;
+    elP2Funds.textContent = `Funds ${Game.funds[2]}`;
+    if(p1TopCOName) p1TopCOName.textContent = co1.name;
+    if(p2TopCOName) p2TopCOName.textContent = co2.name;
+    setCOAvatar(p1TopAvatar, co1, 1);
+    setCOAvatar(p2TopAvatar, co2, 2);
+
+    if(p1Card){
+      const active = Game.currentPlayer===1;
+      p1Card.classList.toggle("active", active);
+      p1Card.style.borderColor = active ? COLORS.p1 : "#23346b";
+      p1Card.style.boxShadow = active ? "0 0 0 1px rgba(99,186,255,0.4)" : "none";
+    }
+    if(p2Card){
+      const active = Game.currentPlayer===2;
+      p2Card.classList.toggle("active", active);
+      p2Card.style.borderColor = active ? COLORS.p2 : "#23346b";
+      p2Card.style.boxShadow = active ? "0 0 0 1px rgba(255,95,140,0.4)" : "none";
+    }
+    renderCOSection();
 
     if(Game.sel && Game.sel.type==="unit"){
       const u = Game.sel.unit;
@@ -1845,7 +2621,7 @@
    * Rendering
    ***********************************************************************/
   function getUnitRenderPos(u, now){
-    if(u.animMove){
+    if(u && u.animMove && Array.isArray(u.animMove.path)){
       const { path, start, step } = u.animMove;
       const steps = path.length-1;
       if(steps>0){
@@ -1858,7 +2634,11 @@
         const t = (elapsed % step) / step;
         const a = path[seg];
         const b = path[seg+1];
-        return { x: a.x + (b.x - a.x)*t, y: a.y + (b.y - a.y)*t };
+        if(a && b){
+          return { x: a.x + (b.x - a.x)*t, y: a.y + (b.y - a.y)*t };
+        } else {
+          u.animMove = null;
+        }
       } else {
         u.animMove = null;
       }
