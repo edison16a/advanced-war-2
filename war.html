@@ -21,7 +21,22 @@
     #wrap{display:flex;align-items:stretch;justify-content:center;gap:12px;padding:12px;box-sizing:border-box;height:100%}
     #gameCol{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
     canvas{background:#050814;border:1px solid #23346b;border-radius:10px;image-rendering:pixelated}
-    #panel{width:360px;max-width:38vw;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #23346b;border-radius:14px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px}
+    #panel{
+      width:360px;
+      max-width:38vw;
+      height:calc(100vh - 24px); /* keep the full panel in view */
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border:1px solid #23346b;
+      border-radius:14px;
+      padding:12px;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      overflow:auto;
+      scrollbar-width:none; /* hide scrollbar in Firefox */
+    }
+    #panel::-webkit-scrollbar{display:none;} /* hide scrollbar in WebKit */
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .btn{
       background:#152252;border:1px solid #2a3f86;color:var(--text);
@@ -36,7 +51,17 @@
     .tag{padding:2px 8px;border:1px solid #2a3f86;border-radius:999px;font-size:12px;color:var(--muted)}
     .big{font-size:18px;font-weight:800}
     .muted{color:var(--muted)}
-    #log{flex:1;overflow:auto;background:#0a1026;border:1px solid #23346b;border-radius:12px;padding:10px;line-height:1.25}
+    #log{
+      flex:1;
+      min-height:240px; /* give the log room so it doesn't collapse */
+      max-height:45vh;
+      overflow:auto;
+      background:#0a1026;
+      border:1px solid #23346b;
+      border-radius:12px;
+      padding:10px;
+      line-height:1.25;
+    }
     #log .line{margin:0 0 8px 0}
     #log .p1{color:#7cc6ff}
     #log .p2{color:#ff8aa7}
@@ -101,6 +126,39 @@
       display:flex;align-items:center;justify-content:center;
       box-sizing:border-box;
     }
+    #battleOverlay{
+      position:fixed;inset:0;background:rgba(5,8,20,0.9);
+      display:none;align-items:center;justify-content:center;
+      z-index:9999;
+    }
+    #battleBox{
+      width:80vw;max-width:960px;
+      display:flex;justify-content:space-between;align-items:center;
+      gap:20px;padding:20px;
+      background:#0a1026;border:1px solid #23346b;border-radius:16px;
+      box-shadow:0 20px 50px rgba(0,0,0,0.45);
+    }
+    .battleSide{
+      flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;
+    }
+    .battleImg{
+      width:150px;height:150px;
+      background:#0b1433;border:1px solid #23346b;border-radius:16px;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;image-rendering:pixelated;
+    }
+    .battleImg img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;}
+    .battleHP{
+      width:180px;height:14px;background:#0b1433;border:1px solid #23346b;border-radius:8px;overflow:hidden;
+    }
+    .battleHPFill{
+      height:100%;background:#74ff8a;transition:width 0.4s ease;
+    }
+    .battleLabel{font-weight:700}
+    .hitLeft{animation:hitLeft 0.35s ease;}
+    .hitRight{animation:hitRight 0.35s ease;}
+    @keyframes hitLeft{0%{transform:translateX(0);}50%{transform:translateX(18px);}100%{transform:translateX(0);}}
+    @keyframes hitRight{0%{transform:translateX(0);}50%{transform:translateX(-18px);}100%{transform:translateX(0);}}
   </style>
 </head>
 <body>
@@ -179,6 +237,7 @@
         <button class="btn" id="newBtn">New Game</button>
         <button class="btn bad" id="resetBtn" title="Hard reset the match">Reset</button>
         <button class="btn" id="openShopBtn" title="Open your shop (random owned base)">Open Shop (B)</button>
+        <button class="btn" id="unselectBtn" title="Clear selection / close panels">ESC</button>
         <button class="btn" id="keyBtn" title="Open unit/terrain legend">Key (K)</button>
       </div>
 
@@ -198,6 +257,21 @@
 
       <div class="big" style="font-size:16px">Battle Log</div>
       <div id="log"></div>
+    </div>
+  </div>
+
+  <div id="battleOverlay">
+    <div id="battleBox">
+      <div class="battleSide" id="battleLeft">
+        <div class="battleImg"><img id="battleLeftImg" alt=""></div>
+        <div class="battleLabel" id="battleLeftLabel"></div>
+        <div class="battleHP"><div class="battleHPFill" id="battleLeftHP"></div></div>
+      </div>
+      <div class="battleSide" id="battleRight">
+        <div class="battleImg"><img id="battleRightImg" alt=""></div>
+        <div class="battleLabel" id="battleRightLabel"></div>
+        <div class="battleHP"><div class="battleHPFill" id="battleRightHP"></div></div>
+      </div>
     </div>
   </div>
 
@@ -251,7 +325,7 @@
   const BUILDING_SOURCES = {
     HQ:   { 1:"blue_hq.png", 2:"red_hq.png", 0:"building.png" },
     BASE: { 1:"blue_base.png", 2:"red_base.png", 0:"building.png" },
-    CITY: { 0:"building.png" }
+    CITY: { 1:"blue_base.png", 2:"red_base.png", 0:"building.png" }
   };
   const BUILDING_IMAGES = {};
 
@@ -394,6 +468,7 @@
   const newBtn = document.getElementById("newBtn");
   const resetBtn = document.getElementById("resetBtn");
   const openShopBtn = document.getElementById("openShopBtn");
+  const unselectBtn = document.getElementById("unselectBtn");
 
   const elSelHint = document.getElementById("selHint");
   const elSelKv = document.getElementById("selKv");
@@ -413,6 +488,13 @@
   const logBox = document.getElementById("log");
   const helpBox = document.getElementById("help");
   const lowerPanels = document.getElementById("lowerPanels");
+  const battleOverlay = document.getElementById("battleOverlay");
+  const battleLeftImg = document.getElementById("battleLeftImg");
+  const battleRightImg = document.getElementById("battleRightImg");
+  const battleLeftHP = document.getElementById("battleLeftHP");
+  const battleRightHP = document.getElementById("battleRightHP");
+  const battleLeftLabel = document.getElementById("battleLeftLabel");
+  const battleRightLabel = document.getElementById("battleRightLabel");
 
   /***********************************************************************
    * Game State
@@ -517,6 +599,13 @@
     img.style.objectFit = "cover";
     img.style.imageRendering = "pixelated";
     return img;
+  }
+
+  function getUnitSpriteSrc(u){
+    const list = getSpriteList(u.typeId, u.owner);
+    if(!list.length) return "";
+    const img = list[u.spriteIdx % list.length];
+    return img ? img.src : "";
   }
 
   function pickRandomBase(playerId){
@@ -842,7 +931,7 @@
       imgRow.className = "selImgRow";
       imgRow.appendChild(sprite);
 
-      elSelHint.textContent = "Selected unit. Move, then attack/capture.";
+      elSelHint.textContent = "Press ESC to unselect";
       addKV("Owner", p.name);
       addKV("Type", `${u.def.name} (${u.def.abbr})`); // NEW: show abbr
       addKV("HP", `${u.hp}/${u.def.maxHP}`);
@@ -1029,6 +1118,47 @@
   }
 
   /***********************************************************************
+   * Battle Overlay
+   ***********************************************************************/
+  function setHPBar(el, current, max){
+    const pct = clamp(current / max, 0, 1);
+    el.style.width = `${pct*100}%`;
+    el.style.background = pct>0.66 ? "#74ff8a" : pct>0.33 ? "#ffd166" : "#ff5d7a";
+  }
+
+  function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax }){
+    return new Promise(resolve=>{
+      if(!battleOverlay) return resolve();
+      battleOverlay.style.display = "flex";
+
+      battleLeftImg.src = attackerImg || "";
+      battleRightImg.src = defenderImg || "";
+      battleLeftLabel.textContent = attackerLabel;
+      battleRightLabel.textContent = defenderLabel;
+
+      battleLeftImg.parentElement.classList.remove("hitLeft");
+      battleRightImg.parentElement.classList.remove("hitRight");
+
+      setHPBar(battleLeftHP, atkBefore, atkMax || atkBefore || 1);
+      setHPBar(battleRightHP, defBefore, defMax || defBefore || 1);
+
+      void battleOverlay.offsetWidth; // reflow
+
+      setTimeout(()=>{
+        battleLeftImg.parentElement.classList.add("hitLeft");
+        battleRightImg.parentElement.classList.add("hitRight");
+        setHPBar(battleLeftHP, atkAfter, atkMax || Math.max(atkBefore,1));
+        setHPBar(battleRightHP, defAfter, defMax || Math.max(defBefore,1));
+      }, 30);
+
+      setTimeout(()=>{
+        battleOverlay.style.display = "none";
+        resolve();
+      }, 1000);
+    });
+  }
+
+  /***********************************************************************
    * Movement
    ***********************************************************************/
   const DIRS = [
@@ -1209,12 +1339,40 @@
     return d>=defender.def.rangeMin && d<=defender.def.rangeMax;
   }
 
-  function performAttack(attacker, defender){
+  async function performAttack(attacker, defender){
     if(Game.gameOver) return;
     if(attacker.acted) return;
 
+    const defBefore = defender.hp;
+    const atkBefore = attacker.hp;
+
     const { roll: dmgToDef, min: atkMin, max: atkMax } = computeDamageRoll(attacker, defender);
-    defender.hp = clamp(defender.hp - dmgToDef, 0, defender.def.maxHP);
+    const newDefHP = clamp(defender.hp - dmgToDef, 0, defender.def.maxHP);
+
+    let dmgToAtk = 0, defMin=0, defMax=0;
+    let newAtkHP = atkBefore;
+    if(canRetaliate(defender, attacker) && newDefHP>0){
+      const res = computeDamageRoll(defender, attacker);
+      dmgToAtk = res.roll; defMin = res.min; defMax = res.max;
+      newAtkHP = clamp(attacker.hp - dmgToAtk, 0, attacker.def.maxHP);
+    }
+
+    await showBattleOverlay({
+      attacker,
+      defender,
+      atkBefore,
+      atkAfter: newAtkHP,
+      defBefore,
+      defAfter: newDefHP,
+      attackerLabel: `${attacker.def.name}`,
+      defenderLabel: `${defender.def.name}`,
+      attackerImg: getUnitSpriteSrc(attacker),
+      defenderImg: getUnitSpriteSrc(defender),
+      atkMax: attacker.def.maxHP,
+      defMax: defender.def.maxHP
+    });
+
+    defender.hp = newDefHP;
     logLine(`${owningPlayer(attacker.owner).name} ${attacker.def.name} hits ${defender.def.name} for ${dmgToDef} (roll ${atkMin}-${atkMax}).`, attacker.owner);
 
     if(defender.hp<=0){
@@ -1224,9 +1382,8 @@
       return;
     }
 
-    if(canRetaliate(defender, attacker)){
-      const { roll: dmgToAtk, min: defMin, max: defMax } = computeDamageRoll(defender, attacker);
-      attacker.hp = clamp(attacker.hp - dmgToAtk, 0, attacker.def.maxHP);
+    if(dmgToAtk>0){
+      attacker.hp = newAtkHP;
       logLine(`${defender.def.name} retaliates for ${dmgToAtk} (roll ${defMin}-${defMax}).`, defender.owner);
 
       if(attacker.hp<=0){
@@ -1243,7 +1400,7 @@
   /***********************************************************************
    * Capture Mechanics
    ***********************************************************************/
-  function tryCapture(unit){
+  async function tryCapture(unit){
     if(!unit.def.canCapture) return false;
 
     const b = buildingAt(unit.x, unit.y);
@@ -1251,7 +1408,25 @@
 
     if(b.owner === unit.owner && b.capturePoints===20) return false;
 
-    b.capturePoints = clamp(b.capturePoints - unit.hp, 0, 20);
+    const before = b.capturePoints;
+    const after = clamp(b.capturePoints - unit.hp, 0, 20);
+
+    await showBattleOverlay({
+      attacker: unit,
+      defender: b,
+      atkBefore: unit.hp,
+      atkAfter: unit.hp,
+      defBefore: before,
+      defAfter: after,
+      attackerLabel: `${unit.def.name}`,
+      defenderLabel: `${b.def.name}`,
+      attackerImg: getUnitSpriteSrc(unit),
+      defenderImg: (getBuildingSprite(b.kindId, b.owner ?? 0)||{}).src || "",
+      atkMax: unit.def.maxHP,
+      defMax: 20
+    });
+
+    b.capturePoints = after;
     logLine(`${owningPlayer(unit.owner).name} captures ${b.def.name}: ${b.capturePoints}/20 remaining.`, unit.owner);
 
     if(b.capturePoints<=0){
@@ -1477,7 +1652,7 @@
     return {x,y};
   }
 
-  function onLeftClickGrid(x,y){
+  async function onLeftClickGrid(x,y){
     if(Game.gameOver) return;
 
     if(Game.phase==="SHOP"){
@@ -1499,9 +1674,10 @@
           if(occ && occ.uid!==su.uid) return;
 
           const destK = key(x,y);
-          reconstructPath(destK);
+          const path = reconstructPath(destK);
 
           su.x = x; su.y = y;
+          su.animMove = { path, start: performance.now(), step: 200 };
           su.moved = true;
 
           logLine(`${owningPlayer(su.owner).name} moves ${su.def.name}.`, su.owner);
@@ -1518,7 +1694,7 @@
           if(Game.atkTiles.has(clickedKey) && enemyInRangeAt(su,clickedKey)){
             const target = unitAt(x,y);
             if(target){
-              performAttack(su, target);
+              await performAttack(su, target);
 
               if(!Game.units.some(z=>z.uid===su.uid)){
                 clearSelection();
@@ -1532,7 +1708,7 @@
           }
 
           if(x===su.x && y===su.y){
-            const did = tryCapture(su);
+            const did = await tryCapture(su);
             if(did){
               computeAttackOverlayIfApplicable();
               updateSelectionPanel();
@@ -1578,11 +1754,11 @@
     }
   });
 
-  canvas.addEventListener("mousedown", (e)=>{
+  canvas.addEventListener("mousedown", async (e)=>{
     if(e.button===2) return;
     const g = canvasToGrid(e.clientX, e.clientY);
     if(!inBounds(g.x,g.y)) return;
-    onLeftClickGrid(g.x,g.y);
+    await onLeftClickGrid(g.x,g.y);
   });
 
   canvas.addEventListener("contextmenu", onRightClick);
@@ -1616,6 +1792,13 @@
   newBtn.addEventListener("click", freshMatch);
   resetBtn.addEventListener("click", hardReset);
   openShopBtn.addEventListener("click", ()=>{ autoOpenShopForCurrentPlayer(); });
+  unselectBtn.addEventListener("click", ()=>{
+    closeShop();
+    closeKey();
+    clearSelection();
+    updateUI();
+    updateHelpPosition();
+  });
   closeShopBtn.addEventListener("click", ()=>{ closeShop(); updateUI(); });
   keyBtn.addEventListener("click", ()=>{ toggleKey(); });
   closeKeyBtn.addEventListener("click", ()=>{ closeKey(); });
@@ -1661,7 +1844,30 @@
   /***********************************************************************
    * Rendering
    ***********************************************************************/
-  function draw(){
+  function getUnitRenderPos(u, now){
+    if(u.animMove){
+      const { path, start, step } = u.animMove;
+      const steps = path.length-1;
+      if(steps>0){
+        const elapsed = now - start;
+        const seg = Math.floor(elapsed / step);
+        if(seg >= steps){
+          u.animMove = null;
+          return { x:u.x, y:u.y };
+        }
+        const t = (elapsed % step) / step;
+        const a = path[seg];
+        const b = path[seg+1];
+        return { x: a.x + (b.x - a.x)*t, y: a.y + (b.y - a.y)*t };
+      } else {
+        u.animMove = null;
+      }
+    }
+    return { x:u.x, y:u.y };
+  }
+
+  function draw(ts){
+    const now = ts || performance.now();
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     ctx.fillStyle = COLORS.bg;
@@ -1670,7 +1876,7 @@
     drawTerrain();
     drawBuildings();
     drawOverlays();
-    drawUnits();
+    drawUnits(now);
     drawGrid();
     drawTopHUD();
 
@@ -1733,9 +1939,10 @@
   }
 
   // NEW: clearer unit labels (abbr) and slightly improved silhouettes
-  function drawUnits(){
+  function drawUnits(now){
     for(const u of Game.units){
-      const px = u.x*TILE, py = u.y*TILE;
+      const rp = getUnitRenderPos(u, now);
+      const px = rp.x*TILE, py = rp.y*TILE;
       const p = owningPlayer(u.owner);
       const margin = TILE * 0.05; // 0.9x size to reveal tile edges
       const ux = px + margin;
