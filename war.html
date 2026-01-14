@@ -255,6 +255,15 @@
   };
   const BUILDING_IMAGES = {};
 
+  const TERRAIN_SOURCES = {
+    PLAINS: "grass.png",
+    FOREST: "forest.png",
+    MOUNTAIN: "mountain.png",
+    ROAD: "road.png",
+    WATER: "water.png"
+  };
+  const TERRAIN_IMAGES = {};
+
   // NEW: deterministic hash helpers (avoid animated noise)
   function hash2(x, y, seed=1337){
     let n = (x * 374761393 + y * 668265263 + seed * 1442695040888963407n) % 2147483647;
@@ -481,6 +490,10 @@
     return byKind[key] || null;
   }
 
+  function getTerrainSprite(id){
+    return TERRAIN_IMAGES[id] || null;
+  }
+
   function makeBuildingNode(kindId, ownerId, size){
     const img = document.createElement("img");
     const sprite = getBuildingSprite(kindId, ownerId);
@@ -495,12 +508,15 @@
   }
 
   function makeTerrainNode(terrain, size){
-    const div = document.createElement("div");
-    div.className = "thumb";
-    div.style.width = `${size}px`;
-    div.style.height = `${size}px`;
-    div.style.background = terrain.color;
-    return div;
+    const img = document.createElement("img");
+    const sprite = getTerrainSprite(terrain.id);
+    if(sprite) img.src = sprite.src;
+    img.width = size;
+    img.height = size;
+    img.className = "thumb";
+    img.style.objectFit = "cover";
+    img.style.imageRendering = "pixelated";
+    return img;
   }
 
   function pickRandomBase(playerId){
@@ -653,6 +669,12 @@
         img.src = src;
         BUILDING_IMAGES[kindId][ownerId] = img;
       }
+    }
+
+    for(const [id, src] of Object.entries(TERRAIN_SOURCES)){
+      const img = new Image();
+      img.src = src;
+      TERRAIN_IMAGES[id] = img;
     }
   }
 
@@ -1404,7 +1426,13 @@
 
       const sw = document.createElement("span");
       sw.className = "swatch";
-      sw.style.background = t.color;
+      const img = getTerrainSprite(t.id);
+      if(img){
+        sw.style.backgroundImage = `url(${img.src})`;
+        sw.style.backgroundSize = "cover";
+      } else {
+        sw.style.background = t.color;
+      }
 
       const label = document.createElement("div");
       label.innerHTML = `<div style="font-weight:800">${t.name}</div><div class="muted" style="font-size:12px">Move: foot ${t.moveCost.foot}, tread ${t.moveCost.tread}</div>`;
@@ -1655,98 +1683,12 @@
       for(let x=0;x<GRID_W;x++){
         const t = Game.terrain[y][x];
         const px = x*TILE, py = y*TILE;
-
-        // base fill
-        ctx.fillStyle = t.color;
-        ctx.fillRect(px, py, TILE, TILE);
-
-        // add clearer per-terrain features
-        if(t.id === "PLAINS"){
-          // grass blades (deterministic)
-          ctx.strokeStyle = "rgba(255,255,255,0.10)";
-          ctx.lineWidth = 1;
-          const count = 8;
-          for(let i=0;i<count;i++){
-            const ox = 6 + hashInt(x,y,1000+i, TILE-12);
-            const oy = 8 + hashInt(x,y,2000+i, TILE-16);
-            const h = 6 + (hashInt(x,y,3000+i, 6));
-            ctx.beginPath();
-            ctx.moveTo(px+ox, py+oy+h);
-            ctx.lineTo(px+ox+1, py+oy);
-            ctx.stroke();
-          }
-          // darker patches
-          ctx.globalAlpha = 0.10;
-          ctx.fillStyle = "#000000";
-          ctx.fillRect(px+6, py+6, 10, 8);
-          ctx.fillRect(px+TILE-18, py+TILE-16, 12, 10);
-          ctx.globalAlpha = 1;
-        }
-
-        if(t.id === "FOREST"){
-          // tree icons
-          for(let i=0;i<3;i++){
-            const ox = 10 + hashInt(x,y,4000+i, TILE-20);
-            const oy = 10 + hashInt(x,y,5000+i, TILE-20);
-            ctx.fillStyle = "rgba(255,255,255,0.12)";
-            ctx.beginPath();
-            ctx.moveTo(px+ox, py+oy+14);
-            ctx.lineTo(px+ox+6, py+oy);
-            ctx.lineTo(px+ox+12, py+oy+14);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillStyle = "rgba(0,0,0,0.18)";
-            ctx.fillRect(px+ox+5, py+oy+14, 2, 6);
-          }
-        }
-
-        if(t.id === "MOUNTAIN"){
-          // peak lines
-          ctx.strokeStyle = "rgba(255,255,255,0.18)";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(px+8, py+TILE-10);
-          ctx.lineTo(px+18, py+16);
-          ctx.lineTo(px+28, py+TILE-10);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(px+24, py+TILE-12);
-          ctx.lineTo(px+34, py+20);
-          ctx.lineTo(px+44, py+TILE-12);
-          ctx.stroke();
-          ctx.lineWidth = 1;
-        }
-
-        if(t.id === "ROAD"){
-          // road shoulders
-          ctx.fillStyle = "rgba(0,0,0,0.20)";
+        const img = getTerrainSprite(t.id);
+        if(img && img.complete){
+          ctx.drawImage(img, px, py, TILE, TILE);
+        } else {
+          ctx.fillStyle = t.color;
           ctx.fillRect(px, py, TILE, TILE);
-          // dashed centerline
-          ctx.strokeStyle = "rgba(255, 209, 102, 0.65)";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([6,6]);
-          ctx.beginPath();
-          ctx.moveTo(px+TILE/2, py+6);
-          ctx.lineTo(px+TILE/2, py+TILE-6);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.lineWidth = 1;
-        }
-
-        if(t.id === "WATER"){
-          // waves
-          ctx.strokeStyle = "rgba(93, 214, 255, 0.20)";
-          ctx.lineWidth = 2;
-          for(let i=0;i<3;i++){
-            const oy = 10 + i*12 + (hashInt(x,y,6000+i, 5));
-            ctx.beginPath();
-            ctx.arc(px+14, py+oy, 8, 0, Math.PI);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(px+34, py+oy+4, 8, 0, Math.PI);
-            ctx.stroke();
-          }
-          ctx.lineWidth = 1;
         }
       }
     }
