@@ -722,13 +722,23 @@
       RECON: [7,8]
     },
     RKT: {
-      INF: [9,10],
-      TANK: [8,8],
-      MDT: [5,6],
-      ART: [8,9],
-      RKT: [8,9],
-      RECON: [8,9]
-    }
+    INF: [9,10],
+    TANK: [8,8],
+    MDT: [5,6],
+    ART: [8,9],
+    RKT: [8,9],
+    RECON: [8,9]
+  }
+  };
+
+  const UNIT_BLURB = {
+    INF: "Low-cost soldiers essential for capturing properties and forming defensive meat-shields.",
+    MECH: "Heavy-duty foot soldiers equipped with anti-tank rockets to defend rugged terrain like mountains.",
+    RECON: "Mobilize fast to clear fog and counter enemy infantry.",
+    ART: "Mobile, cost-effective indirect cannons that provide fire support from a short distance.",
+    TANK: "Versatile front-line brawlers designed to lead the charge against enemy vehicles and infantry.",
+    MDT: "Slow-moving but heavily armored juggernauts capable of crushing almost any direct-combat unit.",
+    RKT: "Long-range siege launchers that can devastate targets from afar."
   };
 
   const PLAYERS = [
@@ -1233,11 +1243,13 @@
     // Starting units (balanced; includes some new unit types)
     Game.units.push(makeUnit("INF",1, 2,2));
     Game.units.push(makeUnit("INF",1, 3,1));
+    Game.units.push(makeUnit("RECON",1, 3,2));
     Game.units.push(makeUnit("TANK",1, 2,3));
     Game.units.push(makeUnit("ART",1, 4,2));
 
     Game.units.push(makeUnit("INF",2, GRID_W-3, GRID_H-3));
     Game.units.push(makeUnit("INF",2, GRID_W-4, GRID_H-2));
+    Game.units.push(makeUnit("RECON",2, GRID_W-4, GRID_H-4));
     Game.units.push(makeUnit("TANK",2, GRID_W-3, GRID_H-4));
     Game.units.push(makeUnit("ART",2, GRID_W-5, GRID_H-3));
 
@@ -1432,6 +1444,8 @@
       if(b){
         addKV("Building", b.def.name + (b.owner ? ` (Owned by P${b.owner})` : " (Neutral)"));
       }
+      const blurb = UNIT_BLURB[u.def.id];
+      if(blurb) addKV("Role", blurb);
 
       // Detailed stat pills similar to shop cards
       const pills = [];
@@ -2468,6 +2482,14 @@
       capPill.textContent = def.canCapture ? "Can capture" : "No capture";
       statRow.appendChild(capPill);
 
+      const blurb = UNIT_BLURB[def.id];
+      if(blurb){
+        const desc = document.createElement("div");
+        desc.className = "meta";
+        desc.textContent = blurb;
+        info.appendChild(desc);
+      }
+
       info.appendChild(statRow);
       left.appendChild(info);
       div.appendChild(left);
@@ -2589,8 +2611,10 @@
 
       const left = document.createElement("div");
       const rangeLabel = formatRangeText(u.rangeMin, u.rangeMax, u.move, u.id==="RKT");
+      const blurb = UNIT_BLURB[u.id];
       left.innerHTML = `<div style="font-weight:800">${u.name} <span class="abbr">${u.abbr}</span></div>
-                        <div class="muted" style="font-size:12px">Cost ${u.cost} • Move ${u.move} • Range ${rangeLabel}${u.indirect ? " (Indirect)" : ""}</div>`;
+                        <div class="muted" style="font-size:12px">Cost ${u.cost} • Move ${u.move} • Range ${rangeLabel}${u.indirect ? " (Indirect)" : ""}</div>
+                        ${blurb ? `<div class="muted" style="font-size:12px">${blurb}</div>` : ""}`;
       const right = document.createElement("div");
       right.innerHTML = `<span class="pill ${u.canCapture ? "good" : ""}">${u.canCapture ? "Can capture" : "No capture"}</span>`;
 
