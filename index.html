@@ -666,6 +666,45 @@
     }
   };
 
+  // Explicit damage ranges (hp) per matchup at 10hp on 0-star terrain (includes luck).
+  const DAMAGE_TABLE = {
+    INF: {
+      INF: [5,6],
+      TANK: [0,1],
+      MDT: [0,1],
+      ART: [1,2],
+      RKT: [2,3]
+    },
+    TANK: {
+      INF: [7,8],
+      TANK: [5,6],
+      MDT: [1,2],
+      ART: [7,7],
+      RKT: [8,8]
+    },
+    MDT: {
+      INF: [10,10],
+      TANK: [8,9],
+      MDT: [5,6],
+      ART: [10,10],
+      RKT: [10,10]
+    },
+    ART: {
+      INF: [9,10],
+      TANK: [7,7],
+      MDT: [4,5],
+      ART: [7,8],
+      RKT: [8,8]
+    },
+    RKT: {
+      INF: [9,10],
+      TANK: [8,8],
+      MDT: [5,6],
+      ART: [8,9],
+      RKT: [8,9]
+    }
+  };
+
   const PLAYERS = [
     { id:1, name:"Player 1", color:COLORS.p1, dark:COLORS.p1Dark },
     { id:2, name:"Player 2", color:COLORS.p2, dark:COLORS.p2Dark }
@@ -1343,6 +1382,7 @@
       addKV("Move", `${u.def.move} (${u.def.movementType})`);
       addKV("Range", rangeText);
       addKV("Status", `${u.moved ? "Moved" : "Can Move"} / ${u.acted ? "Attacked" : "Can Atk"}`);
+      addKV("Damage", damageProfileText(u.def.id).replace("Damage: ",""));
 
       const tile = terrainAt(u.x,u.y);
       addKV("Terrain", tile.name);
@@ -1366,10 +1406,9 @@
       hpPill.textContent = `HP ${u.hp}/${u.def.maxHP}`;
       pills.push(hpPill);
 
-      const dmgPreview = previewDamageRange(u.def);
       const dmgPill = document.createElement("span");
       dmgPill.className = "pill warn";
-      dmgPill.textContent = `Damage roll vs INF: ${dmgPreview.min}-${dmgPreview.max}`;
+      dmgPill.textContent = damageProfileText(u.def.id);
       pills.push(dmgPill);
 
       const armorPill = document.createElement("span");
@@ -1951,6 +1990,27 @@
     return { minR, maxR };
   }
 
+  function getDamageRangeEntry(attackerId, defenderId){
+    const table = DAMAGE_TABLE[attackerId];
+    if(!table) return null;
+    return table[defenderId] || null;
+  }
+
+  function damageProfileText(attackerId){
+    const order = ["INF","TANK","MDT","ART","RKT"];
+    const table = DAMAGE_TABLE[attackerId];
+    if(!table) return "Damage: —";
+    const parts = [];
+    for(const tid of order){
+      const rng = table[tid];
+      if(!rng) continue;
+      const [a,b] = rng;
+      const label = UNIT_DEF[tid]?.abbr || tid;
+      parts.push(`${label} ${a}${a===b ? "" : `-${b}`}`);
+    }
+    return "Damage: " + parts.join(" • ");
+  }
+
   // Show attack range text; rockets get a note for their move+fire reach (since this build allows it)
   function formatRangeText(rangeMin, rangeMax, move=0, isRocket=false){
     if(isRocket){
@@ -2002,6 +2062,16 @@
   }
 
   function computeDamageRoll(attacker, defender){
+    const entry = getDamageRangeEntry(attacker.def.id, defender.def.id);
+    if(entry){
+      const [minBase, maxBase] = entry;
+      const min = clamp(minBase, 0, defender.def.maxHP);
+      const max = clamp(maxBase, min, defender.def.maxHP);
+      const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
+      return { roll, min, max };
+    }
+
+    // Fallback to legacy calculation if a matchup isn't defined.
     const atkBase = attacker.def.baseAtk[defender.def.id] ?? 4;
     const hpFactor = attacker.hp / attacker.def.maxHP;
     let raw = atkBase * (0.75 + 0.75*hpFactor);
@@ -2012,19 +2082,32 @@
     const armor = defender.def.armor ?? 0;
 
     const reduction = clamp(0.10*defBonus + 0.08*armor, 0, 0.65);
-    const base = Math.max(1, raw * (1 - reduction));
+    const base = Math.max(0, raw * (1 - reduction));
 
-    const min = Math.max(1, Math.floor(base * 0.85));
-    const max = Math.max(min + 1, Math.ceil(base * 1.15));
-    let roll = clamp(randBetween(min, max), 1, defender.def.maxHP);
-    roll = clamp(roll + luckBonus(attacker), 1, defender.def.maxHP);
+    const min = Math.max(0, Math.floor(base * 0.85));
+    const max = Math.max(min, Math.ceil(base * 1.15));
+    const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
     return { roll, min, max };
   }
 
   function previewDamageRange(def){
-    const base = def.baseAtk.INF ?? 4;
-    const min = Math.max(1, Math.floor(base * 0.85));
-    const max = Math.max(min + 1, Math.ceil(base * 1.15));
+    const table = DAMAGE_TABLE[def.id];
+    if(table){
+      let min = Infinity, max = -Infinity;
+      for(const rng of Object.values(table)){
+        if(!rng) continue;
+        min = Math.min(min, rng[0]);
+        max = Math.max(max, rng[1]);
+      }
+      if(min!==Infinity && max!==-Infinity){
+        return { min, max };
+      }
+    }
+    const vals = Object.values(def.baseAtk || {});
+    const low = vals.length ? Math.min(...vals) : 4;
+    const high = vals.length ? Math.max(...vals) : 4;
+    const min = Math.max(0, Math.floor(low * 0.85));
+    const max = Math.max(min, Math.ceil(high * 1.15));
     return { min, max };
   }
 
@@ -2257,14 +2340,14 @@
       left.appendChild(sprite);
 
       const info = document.createElement("div");
-      const dmgPreview = previewDamageRange(def);
       const role = def.indirect ? "Indirect fire" : "Direct fire";
       const rangeLabel = formatRangeText(def.rangeMin, def.rangeMax, def.move, def.id==="RKT");
+      const dmgProfile = damageProfileText(def.id);
       info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>
                         <div class="meta">Cost ${price} • Move ${def.move} (${def.movementType}) • Range ${rangeLabel} • ${role}</div>`;
       const statRow = document.createElement("div");
       statRow.className = "shopStats";
-      statRow.innerHTML = `<span class="pill warn">Damage roll vs INF: ${dmgPreview.min}-${dmgPreview.max}</span>
+      statRow.innerHTML = `<span class="pill warn">${dmgProfile}</span>
                            <span class="pill">Armor: ${def.armor ?? 0}</span>
                            ${def.canCapture ? '<span class="pill good">Can capture</span>' : '<span class="pill">No capture</span>'}`;
       info.appendChild(statRow);
