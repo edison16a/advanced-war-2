@@ -8,6 +8,8 @@ A lightweight, browser-based remake inspired by classic turn-based strategy game
 - Simple controls and fast restart loop
 - Clean, minimal UI for quick gameplay
 
+Or try it out here: https://advanced-war-2.vercel.app/
+
 ## Screenshots
 
 <img width="1492" height="820" alt="Screenshot 2026-01-13 at 9 49 15 PM" src="https://github.com/user-attachments/assets/d3970dd0-9a32-40e6-a846-9e0350041f0a" />
