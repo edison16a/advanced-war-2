@@ -270,6 +270,102 @@
     #turnOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:6500;pointer-events:none;background:radial-gradient(circle at 30% 30%,rgba(93,214,255,0.12),transparent 45%),radial-gradient(circle at 70% 70%,rgba(255,93,122,0.12),transparent 45%)}
     #turnOverlay .turnBox{min-width:320px;max-width:520px;background:#0b1433;border:1px solid #23346b;border-radius:16px;padding:16px;box-shadow:0 20px 40px rgba(0,0,0,0.45);transform:translateY(20px);opacity:0;transition:opacity 0.3s ease,transform 0.3s ease}
     #turnOverlay.show .turnBox{opacity:1;transform:translateY(0)}
+    /* Map picker modal */
+    #mapModal{
+      position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+      background:rgba(5,8,20,0.8);z-index:9999;
+    }
+    #mapModal .modalBox{
+      width:90vw;max-width:780px;
+      background:#0a1026;border:1px solid #23346b;border-radius:16px;
+      padding:16px;box-shadow:0 20px 40px rgba(0,0,0,0.5);
+      display:flex;flex-direction:column;gap:12px;
+      max-height:90vh;
+      overflow:auto;
+      scrollbar-width:none;
+    }
+    #mapModal .modalBox::-webkit-scrollbar{display:none;}
+    .mapGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:10px;
+    }
+    .mapCard{
+      background:#0b1433;border:1px solid #23346b;border-radius:12px;padding:10px;
+      display:flex;flex-direction:column;gap:6px;
+    }
+    .mapCard .name{font-weight:800}
+    .mapCard .meta{font-size:12px;color:var(--muted)}
+    .mapCard button{align-self:flex-start}
+    .customMapSection{
+      background:#0b1433;
+      border:1px solid #23346b;
+      border-radius:12px;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+      text-align:center;
+    }
+    .customPalette{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    .tileSwatch{
+      width:40px;height:40px;border-radius:10px;border:1px solid #23346b;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      background:#0a1026;
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+    }
+    .tileSwatch.active{box-shadow:0 0 0 2px var(--accent);}
+    .customGrid{
+      display:grid;
+      grid-template-columns:repeat(16, 26px);
+      grid-auto-rows:26px;
+      gap:2px;
+      background:#050814;
+      padding:6px;
+      border:1px solid #23346b;
+      border-radius:10px;
+      max-width:480px;
+      overflow:auto;
+      margin-left:auto;
+      margin-right:auto;
+    }
+    .customCell{
+      width:26px;height:26px;
+      border-radius:6px;
+      border:1px solid #23346b;
+      cursor:pointer;
+      box-sizing:border-box;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:700;color:var(--text);
+      user-select:none;
+    }
+    .customActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    .editableName{
+      position:relative;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+    }
+    .editableName:hover{text-decoration:underline;}
+    .editableName::after{
+      content:"(edit)";
+      font-size:11px;
+      color:var(--muted);
+      opacity:0;
+      transition:opacity 0.15s ease;
+      position:absolute;
+      left:100%;
+      top:50%;
+      transform:translateY(-50%);
+      margin-left:6px;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    .editableName:hover::after{opacity:1;}
     .turnMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
     .turnIncome{font-size:18px;font-weight:800}
     .turnCO{font-size:13px;color:#a9b6e6;line-height:1.35}
@@ -342,7 +438,7 @@
           <div class="playerCardHeader">
             <div class="coAvatar mini editable" id="p1TopAvatar" title="Change CO"></div>
             <div class="playerText">
-              <div class="playerName">Player 1</div>
+              <div class="playerName editableName" id="p1NameLabel">Player 1</div>
               <div class="playerCO" id="p1TopCOName">Andy</div>
             </div>
             <div class="coTooltip" id="p1TopTooltip"></div>
@@ -361,7 +457,7 @@
           <div class="playerCardHeader">
             <div class="coAvatar mini editable" id="p2TopAvatar" title="Change CO"></div>
             <div class="playerText">
-              <div class="playerName">Player 2</div>
+              <div class="playerName editableName" id="p2NameLabel">Player 2</div>
               <div class="playerCO" id="p2TopCOName">Andy</div>
             </div>
             <div class="coTooltip" id="p2TopTooltip"></div>
@@ -491,6 +587,28 @@
       </div>
       <div class="sep"></div>
       <div class="coList" id="coList"></div>
+    </div>
+  </div>
+
+  <div id="mapModal">
+    <div class="modalBox">
+      <div class="headerRow" style="flex-direction:column;align-items:center;gap:12px">
+        <div class="big" style="font-size:18px;text-align:center;width:100%;">Choose a Map</div>
+        <button class="btn" id="closeMapModal" style="width:100%;text-align:center;">Close</button>
+      </div>
+      <div class="mapGrid" id="mapList"></div>
+      <div class="sep"></div>
+      <div class="customMapSection">
+        <div class="big" style="font-size:15px">Custom Map (16x12)</div>
+        <div class="muted" style="font-size:12px">Click or drag to paint tiles.</div>
+        <div class="customPalette" id="customPalette"></div>
+        <div class="customGrid" id="customGrid"></div>
+        <div class="customActions">
+          <button class="btn" id="fillPlains">Fill Plains</button>
+          <button class="btn" id="resetCustom">Reset</button>
+          <button class="btn primary" id="applyCustomMap">Start Custom Map</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -690,7 +808,7 @@
       RECON: [1,2]
     },
     RECON: {
-      INF: [7,8],
+      INF: [8,9], // tuned so grass cover still yields 7-8 per spec
       RECON: [3,4],
       TANK: [1,2],
       MDT: [0,1],
@@ -719,12 +837,12 @@
       MDT: [4,5],
       ART: [7,8],
       RKT: [8,8],
-      RECON: [7,8]
+      RECON: [8,8]
     },
     RKT: {
-    INF: [9,10],
-    TANK: [8,8],
-    MDT: [5,6],
+      INF: [9,10],
+      TANK: [8,8],
+      MDT: [5,6],
     ART: [8,9],
     RKT: [8,9],
     RECON: [8,9]
@@ -818,6 +936,8 @@
   const p2TopAvatar = document.getElementById("p2TopAvatar");
   const p1Card = document.getElementById("p1Card");
   const p2Card = document.getElementById("p2Card");
+  const p1NameLabel = document.getElementById("p1NameLabel");
+  const p2NameLabel = document.getElementById("p2NameLabel");
   const p1TopTooltip = document.getElementById("p1TopTooltip");
   const p2TopTooltip = document.getElementById("p2TopTooltip");
   const p1TopActions = document.getElementById("p1TopActions");
@@ -892,6 +1012,14 @@
   const turnOverlayPlayer = document.getElementById("turnOverlayPlayer");
   const turnOverlayDay = document.getElementById("turnOverlayDay");
   const turnOverlayIncome = document.getElementById("turnOverlayIncome");
+  const mapModal = document.getElementById("mapModal");
+  const mapList = document.getElementById("mapList");
+  const applyCustomMapBtn = document.getElementById("applyCustomMap");
+  const closeMapModal = document.getElementById("closeMapModal");
+  const customPalette = document.getElementById("customPalette");
+  const customGridEl = document.getElementById("customGrid");
+  const fillPlainsBtn = document.getElementById("fillPlains");
+  const resetCustomBtn = document.getElementById("resetCustom");
 
   let coModalTarget = null;
   let turnOverlayTimer = null;
@@ -947,7 +1075,9 @@
     coChoice: { 1:"ANDY", 2:"ANDY" },
     coMeter: { 1:0, 2:0 },
     coState: { 1:null, 2:null },
-    dmgDetail: false
+    dmgDetail: false,
+    selectedMap: "CLASSIC",
+    customMapText: ""
   };
 
   /***********************************************************************
@@ -1089,6 +1219,13 @@
   }
 
   function owningPlayer(id){ return PLAYERS.find(p=>p.id===id) || PLAYERS[0]; }
+  function setPlayerName(id, name){
+    const clean = (name || "").trim() || `Player ${id}`;
+    const p = PLAYERS.find(x=>x.id===id);
+    if(p) p.name = clean;
+    if(id===1 && p1NameLabel) p1NameLabel.textContent = clean;
+    if(id===2 && p2NameLabel) p2NameLabel.textContent = clean;
+  }
 
   /***********************************************************************
    * Tile defense (stars)
@@ -1130,7 +1267,7 @@
     };
   }
 
-  function generateMap(){
+  function generateMapClassic(){
     initEmptyLayers();
 
     for(let y=0;y<GRID_H;y++){
@@ -1189,6 +1326,358 @@
     for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
   }
 
+  function generateMapRiverRun(){
+    initEmptyLayers();
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = (x===Math.floor(GRID_W/2)) ? TERRAIN.WATER : TERRAIN.PLAINS;
+      }
+    }
+    for(let y=0;y<GRID_H;y++){
+      Game.terrain[y][Math.floor(GRID_W/2)-1] = TERRAIN.ROAD;
+      Game.terrain[y][Math.floor(GRID_W/2)+1] = TERRAIN.ROAD;
+    }
+    const forests = [
+      {x:3,y:3},{x:4,y:4},{x:11,y:7},{x:12,y:6},{x:5,y:9},{x:10,y:2},
+      {x:2,y:5},{x:13,y:5},{x:4,y:7},{x:11,y:4}
+    ];
+    for(const p of forests) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.FOREST;
+    const mountains = [{x:7,y:2},{x:8,y:2},{x:7,y:9},{x:8,y:9}];
+    for(const p of mountains) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.MOUNTAIN;
+    placeBuilding(1,1,"HQ",1);
+    placeBuilding(GRID_W-2, GRID_H-2, "HQ", 2);
+    placeBuilding(2,1,"BASE",1);
+    placeBuilding(1,2,"BASE",1);
+    placeBuilding(GRID_W-3, GRID_H-2,"BASE",2);
+    placeBuilding(GRID_W-2, GRID_H-3,"BASE",2);
+    const cities = [
+      {x:5,y:3},{x:10,y:8},
+      {x:5,y:8},{x:10,y:3},
+      {x:7,y:6},{x:8,y:5},
+      {x:2,y:6},{x:13,y:6},
+      {x:7,y:0},{x:8,y:11}
+    ];
+    for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
+  }
+
+  function generateMapMountainPass(){
+    initEmptyLayers();
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = TERRAIN.PLAINS;
+      }
+    }
+    const passCols = [5,6,9,10];
+    for(let y=2;y<GRID_H-2;y++){
+      for(const x of passCols){
+        Game.terrain[y][x] = TERRAIN.MOUNTAIN;
+      }
+    }
+    for(let y=0;y<GRID_H;y++){
+      Game.terrain[y][7] = TERRAIN.ROAD;
+      Game.terrain[y][8] = TERRAIN.ROAD;
+    }
+    const forests = [
+      {x:2,y:2},{x:3,y:3},{x:12,y:8},{x:11,y:9},{x:4,y:8},{x:11,y:2},
+      {x:2,y:7},{x:13,y:4},{x:5,y:5},{x:10,y:6}
+    ];
+    for(const p of forests) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.FOREST;
+    placeBuilding(1,1,"HQ",1);
+    placeBuilding(GRID_W-2, GRID_H-2, "HQ", 2);
+    placeBuilding(2,2,"BASE",1);
+    placeBuilding(2,3,"BASE",1);
+    placeBuilding(GRID_W-3, GRID_H-3,"BASE",2);
+    placeBuilding(GRID_W-3, GRID_H-4,"BASE",2);
+    const cities = [
+      {x:6,y:1},{x:9,y:1},{x:6,y:10},{x:9,y:10},
+      {x:4,y:5},{x:11,y:5},{x:7,y:6},{x:8,y:6}
+    ];
+    for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
+  }
+
+  function generateMapIslandDash(){
+    initEmptyLayers();
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = TERRAIN.WATER;
+      }
+    }
+    for(let y=2;y<GRID_H-2;y++){
+      for(let x=2;x<GRID_W-2;x++){
+        Game.terrain[y][x] = TERRAIN.PLAINS;
+      }
+    }
+    for(let x=2;x<GRID_W-2;x++){
+      Game.terrain[5][x] = TERRAIN.ROAD;
+      Game.terrain[6][x] = TERRAIN.ROAD;
+    }
+    const forests = [{x:3,y:3},{x:12,y:3},{x:3,y:8},{x:12,y:8},{x:7,y:5},{x:8,y:6}];
+    for(const p of forests) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.FOREST;
+    const mountains = [{x:7,y:3},{x:8,y:3},{x:7,y:8},{x:8,y:8}];
+    for(const p of mountains) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.MOUNTAIN;
+    placeBuilding(2,2,"HQ",1);
+    placeBuilding(GRID_W-3, GRID_H-3, "HQ", 2);
+    placeBuilding(2,3,"BASE",1);
+    placeBuilding(3,2,"BASE",1);
+    placeBuilding(GRID_W-3, GRID_H-4,"BASE",2);
+    placeBuilding(GRID_W-4, GRID_H-3,"BASE",2);
+    const cities = [
+      {x:5,y:4},{x:10,y:4},{x:5,y:7},{x:10,y:7},
+      {x:7,y:4},{x:8,y:4},{x:7,y:7},{x:8,y:7}
+    ];
+    for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
+  }
+
+  function generateMapUrbanClash(){
+    initEmptyLayers();
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = TERRAIN.PLAINS;
+      }
+    }
+    for(let y=3;y<GRID_H-3;y++){
+      for(let x=4;x<GRID_W-4;x++){
+        if((x+y)%2===0) Game.terrain[y][x] = TERRAIN.ROAD;
+      }
+    }
+    const forests = [{x:2,y:2},{x:13,y:2},{x:2,y:9},{x:13,y:9}];
+    forests.push({x:4,y:4},{x:11,y:4},{x:4,y:7},{x:11,y:7});
+    for(const p of forests) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.FOREST;
+    const mountains = [{x:7,y:0},{x:8,y:0},{x:7,y:11},{x:8,y:11}];
+    for(const p of mountains) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.MOUNTAIN;
+    placeBuilding(1,5,"HQ",1);
+    placeBuilding(GRID_W-2, GRID_H-6, "HQ", 2);
+    placeBuilding(1,4,"BASE",1);
+    placeBuilding(1,6,"BASE",1);
+    placeBuilding(GRID_W-2, GRID_H-7,"BASE",2);
+    placeBuilding(GRID_W-2, GRID_H-5,"BASE",2);
+    const cities = [];
+    for(let x=4;x<GRID_W-4;x+=2){
+      cities.push({x,y:2},{x,y:9});
+    }
+    cities.push({x:7,y:5},{x:8,y:6});
+    for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
+  }
+
+  function generateMapBridgeBlitz(){
+    initEmptyLayers();
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = TERRAIN.PLAINS;
+      }
+    }
+    for(let y=0;y<GRID_H;y++){
+      Game.terrain[y][6] = TERRAIN.WATER;
+      Game.terrain[y][9] = TERRAIN.WATER;
+      Game.terrain[y][7] = TERRAIN.ROAD;
+      Game.terrain[y][8] = TERRAIN.ROAD;
+    }
+    const forests = [
+      {x:2,y:2},{x:3,y:3},{x:12,y:2},{x:13,y:3},
+      {x:2,y:8},{x:3,y:9},{x:12,y:8},{x:13,y:9},
+      {x:6,y:2},{x:6,y:9},{x:9,y:2},{x:9,y:9}
+    ];
+    for(const p of forests) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.FOREST;
+    const mountains = [{x:7,y:5},{x:8,y:6}];
+    for(const p of mountains) if(inBounds(p.x,p.y)) Game.terrain[p.y][p.x] = TERRAIN.MOUNTAIN;
+    placeBuilding(1,5,"HQ",1);
+    placeBuilding(GRID_W-2, GRID_H-6,"HQ",2);
+    placeBuilding(2,5,"BASE",1);
+    placeBuilding(1,6,"BASE",1);
+    placeBuilding(GRID_W-3, GRID_H-6,"BASE",2);
+    placeBuilding(GRID_W-2, GRID_H-7,"BASE",2);
+    const cities = [
+      {x:4,y:2},{x:11,y:2},{x:4,y:9},{x:11,y:9},
+      {x:7,y:3},{x:8,y:3},{x:7,y:8},{x:8,y:8},
+      {x:5,y:6},{x:10,y:6}
+    ];
+    for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
+  }
+
+  function generateCustomMapFromText(text){
+    initEmptyLayers();
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        Game.terrain[y][x] = TERRAIN.PLAINS;
+      }
+    }
+    const lines = (text||"").split("\n").map(s=>s.trimEnd()).filter(s=>s.length);
+    for(let y=0;y<Math.min(GRID_H, lines.length); y++){
+      const row = lines[y];
+      for(let x=0;x<Math.min(GRID_W, row.length); x++){
+        const ch = row[x];
+        switch(ch){
+          case 'f': Game.terrain[y][x] = TERRAIN.FOREST; break;
+          case 'm': Game.terrain[y][x] = TERRAIN.MOUNTAIN; break;
+          case '=': Game.terrain[y][x] = TERRAIN.ROAD; break;
+          case '~': Game.terrain[y][x] = TERRAIN.WATER; break;
+          default: Game.terrain[y][x] = TERRAIN.PLAINS;
+        }
+        if("cbh12HR".includes(ch)){
+          const kind = (ch==='c') ? "CITY" : (ch==='b'||ch==='1'||ch==='2') ? "BASE" : "HQ";
+          const owner = (ch==='1'||ch==='H') ? 1 : (ch==='2'||ch==='R') ? 2 : null;
+          placeBuilding(x,y,kind,owner);
+        }
+      }
+    }
+    // Ensure HQs exist
+    const hasHQ1 = Game.buildings.flat().some(b=>b && b.kindId==="HQ" && b.owner===1);
+    const hasHQ2 = Game.buildings.flat().some(b=>b && b.kindId==="HQ" && b.owner===2);
+    if(!hasHQ1) placeBuilding(1,1,"HQ",1);
+    if(!hasHQ2) placeBuilding(GRID_W-2, GRID_H-2,"HQ",2);
+  }
+
+  // Custom map editor state
+  const CUSTOM_TILES = [
+    { id:"PLAINS", char:".", label:"Plains", color:"#1f4d36" },
+    { id:"FOREST", char:"f", label:"Forest", color:"#19412d" },
+    { id:"MOUNTAIN", char:"m", label:"Mountain", color:"#3a3b46" },
+    { id:"ROAD", char:"=", label:"Road", color:"#3a3f4a" },
+    { id:"WATER", char:"~", label:"Water", color:"#0f335c" },
+    { id:"CITY", char:"c", label:"City", color:"#2b3a63" },
+    { id:"BASE1", char:"1", label:"Base (Blue)", color:"#21406d" },
+    { id:"BASE2", char:"2", label:"Base (Red)", color:"#6d213b" },
+    { id:"HQ1", char:"H", label:"HQ (Blue)", color:"#2f4a86" },
+    { id:"HQ2", char:"R", label:"HQ (Red)", color:"#8a2b2b" }
+  ];
+
+  let customGrid = [];
+  let customTileSelection = CUSTOM_TILES[0];
+
+  function gridToText(grid){
+    return grid.map(row=>row.join("")).join("\n");
+  }
+
+  function textToGrid(text){
+    const out = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>"."));
+    const lines = (text||"").split("\n");
+    for(let y=0;y<Math.min(GRID_H, lines.length); y++){
+      const row = lines[y];
+      for(let x=0;x<Math.min(GRID_W, row.length); x++){
+        out[y][x] = row[x];
+      }
+    }
+    return out;
+  }
+
+  function tileByChar(ch){
+    return CUSTOM_TILES.find(t=>t.char===ch) || CUSTOM_TILES[0];
+  }
+
+  function initCustomGridFromText(text){
+    customGrid = textToGrid(text || DEFAULT_CUSTOM_MAP);
+    if(customGridEl){
+      renderCustomGrid();
+    }
+  }
+
+  function terrainIdFromChar(ch){
+    if(ch==="f") return "FOREST";
+    if(ch==="m") return "MOUNTAIN";
+    if(ch==="=") return "ROAD";
+    if(ch==="~") return "WATER";
+    return "PLAINS";
+  }
+
+  function buildingFromChar(ch){
+    if(ch==="c") return { kind:"CITY", owner:null };
+    if(ch==="b") return { kind:"BASE", owner:null };
+    if(ch==="1") return { kind:"BASE", owner:1 };
+    if(ch==="2") return { kind:"BASE", owner:2 };
+    if(ch==="h") return { kind:"HQ", owner:null };
+    if(ch==="H") return { kind:"HQ", owner:1 };
+    if(ch==="R") return { kind:"HQ", owner:2 };
+    return null;
+  }
+
+  function setTileVisual(cell, ch){
+    if(!cell) return;
+    const tId = terrainIdFromChar(ch);
+    const t = TERRAIN[tId] || TERRAIN.PLAINS;
+    const terrainSprite = getTerrainSprite(t.id);
+    const b = buildingFromChar(ch);
+    let bg = tileByChar(ch).color;
+    let img = "";
+    if(b){
+      const sprite = getBuildingSprite(b.kind, b.owner ?? 0);
+      if(sprite) img = `url(${sprite.src})`;
+    } else if(terrainSprite){
+      img = `url(${terrainSprite.src})`;
+    }
+    cell.style.backgroundColor = bg;
+    cell.style.backgroundImage = img || "none";
+    const paletteBuilding = cell.classList.contains("tileSwatch") && !!b;
+    cell.style.backgroundSize = paletteBuilding ? "70%" : "cover";
+    cell.style.backgroundPosition = "center";
+    cell.style.backgroundRepeat = "no-repeat";
+    cell.textContent = "";
+  }
+
+  function paintCustomCell(x,y){
+    if(!customGrid[y] || customGrid[y][x]===undefined) return;
+    customGrid[y][x] = customTileSelection.char;
+    const idx = y*GRID_W + x;
+    const cell = customGridEl ? customGridEl.children[idx] : null;
+    if(cell){
+      setTileVisual(cell, customTileSelection.char);
+    }
+  }
+
+  function renderCustomPalette(){
+    if(!customPalette) return;
+    customPalette.innerHTML = "";
+    for(const t of CUSTOM_TILES){
+      const btn = document.createElement("div");
+      btn.className = "tileSwatch" + (customTileSelection.id===t.id ? " active" : "");
+      setTileVisual(btn, t.char);
+      btn.title = t.label;
+      btn.addEventListener("click", ()=>{
+        customTileSelection = t;
+        renderCustomPalette();
+      });
+      customPalette.appendChild(btn);
+    }
+  }
+
+  function renderCustomGrid(){
+    if(!customGridEl) return;
+    customGridEl.innerHTML = "";
+    let painting = false;
+    const handlePaint = (e)=>{
+      const cell = e.target;
+      if(!cell.classList.contains("customCell")) return;
+      const x = Number(cell.dataset.x);
+      const y = Number(cell.dataset.y);
+      paintCustomCell(x,y);
+    };
+    customGridEl.onmousedown = (e)=>{ painting=true; handlePaint(e); };
+    customGridEl.onmouseup = ()=>{ painting=false; };
+    customGridEl.onmouseleave = ()=>{ painting=false; };
+    customGridEl.onmousemove = (e)=>{ if(painting) handlePaint(e); };
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const cell = document.createElement("div");
+        cell.className = "customCell";
+        setTileVisual(cell, customGrid[y][x]);
+        cell.dataset.x = String(x);
+        cell.dataset.y = String(y);
+        cell.addEventListener("mousedown", handlePaint);
+        customGridEl.appendChild(cell);
+      }
+    }
+    document.addEventListener("mouseup", ()=>{ painting=false; }, { once:true });
+  }
+
+  const MAPS = [
+    { id:"CLASSIC", name:"Frontline Plains", desc:"Balanced lanes with central roads and forests.", gen:generateMapClassic, img:"assets/frontier.png" },
+    { id:"RIVER", name:"River Run", desc:"Split by a river with flanking roads and bridges.", gen:generateMapRiverRun, img:"assets/river.png" },
+    { id:"MOUNTAIN", name:"Mountain Pass", desc:"Narrow passes through heavy mountains.", gen:generateMapMountainPass, img:"assets/mountain_map.png" },
+    { id:"ISLAND", name:"Island Dash", desc:"Central island brawl surrounded by water.", gen:generateMapIslandDash, img:"assets/island.png" },
+    { id:"URBAN", name:"Urban Clash", desc:"Grid of roads and cities for close quarters.", gen:generateMapUrbanClash, img:"assets/urban.png" },
+    { id:"BRIDGE", name:"Bridge Blitz", desc:"Two bridges with central high ground and forest flanks.", gen:generateMapBridgeBlitz, img:"assets/bridge.png" },
+    { id:"CUSTOM", name:"Custom Map", desc:"Use the editor text to build your own layout.", gen:generateCustomMapFromText, img:null }
+  ];
+
   /***********************************************************************
    * Game Initialization / Reset
    ***********************************************************************/
@@ -1220,6 +1709,32 @@
     }
   }
 
+  const DEFAULT_CUSTOM_MAP =
+`.~~~~~~~........
+.~......f.......
+.~.H....=....R..
+.~......=.......
+.~..c...=...c...
+.~..b...==...b..
+.~......==......
+.~..c...=...c...
+.~......=.......
+.~.1....=....2..
+.~......f.......
+.~~~~~~~........`;
+
+  function applySelectedMap(){
+    const id = Game.selectedMap || "CLASSIC";
+    const entry = MAPS.find(m=>m.id===id);
+    if(id==="CUSTOM"){
+      generateCustomMapFromText(Game.customMapText || DEFAULT_CUSTOM_MAP);
+    } else if(entry && entry.gen){
+      entry.gen();
+    } else {
+      generateMapClassic();
+    }
+  }
+
   function freshMatch(){
     Game.day = 1;
     Game.currentPlayer = 1;
@@ -1237,8 +1752,9 @@
     Game.coMeter = {1:0, 2:0};
     Game.coState = {1:null, 2:null};
     Game.coChoice = {1:"ANDY", 2:"ANDY"};
+    if(!Game.customMapText) Game.customMapText = DEFAULT_CUSTOM_MAP;
 
-    generateMap();
+    applySelectedMap();
 
     // Starting units (balanced; includes some new unit types)
     Game.units.push(makeUnit("INF",1, 2,2));
@@ -1652,6 +2168,8 @@
 
     p1COName.textContent = co1.name;
     p2COName.textContent = co2.name;
+    if(p1NameLabel) p1NameLabel.textContent = owningPlayer(1).name;
+    if(p2NameLabel) p2NameLabel.textContent = owningPlayer(2).name;
     p1COSpecialty.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co1.specialty}</span></div>`;
     p2COSpecialty.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co2.specialty}</span></div>`;
     p1COPower.innerHTML = `<div class="abilityLine"><span class="abilityBadge">CO Power</span><span class="abilityCopy">${co1.power}</span></div>`;
@@ -1835,6 +2353,59 @@
     const pct = clamp(current / max, 0, 1);
     el.style.width = `${pct*100}%`;
     el.style.background = pct>0.66 ? "#74ff8a" : pct>0.33 ? "#ffd166" : "#ff5d7a";
+  }
+
+  /***********************************************************************
+   * Map Picker
+   ***********************************************************************/
+  function renderMapPicker(){
+    if(!mapList) return;
+    initCustomGridFromText(Game.customMapText || DEFAULT_CUSTOM_MAP);
+    mapList.innerHTML = "";
+    renderCustomPalette();
+    renderCustomGrid();
+    for(const m of MAPS.filter(m=>m.id!=="CUSTOM")){
+      const card = document.createElement("div");
+      card.className = "mapCard";
+      if(m.img){
+        const img = document.createElement("img");
+        img.src = m.img;
+        img.alt = m.name;
+        img.style.width = "100%";
+        img.style.borderRadius = "10px";
+        img.style.border = "1px solid #23346b";
+        img.style.background = "#050814";
+        img.style.objectFit = "cover";
+        card.appendChild(img);
+      }
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = m.name;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = m.desc;
+      const btn = document.createElement("button");
+      btn.className = "btn primary";
+      btn.textContent = "Play";
+      btn.addEventListener("click", ()=>{
+        Game.selectedMap = m.id;
+        closeMapPicker();
+        freshMatch();
+      });
+      card.appendChild(name);
+      card.appendChild(meta);
+      card.appendChild(btn);
+      mapList.appendChild(card);
+    }
+  }
+
+  function openMapPicker(){
+    renderMapPicker();
+    if(mapModal) mapModal.style.display = "flex";
+  }
+
+  function closeMapPicker(){
+    if(mapModal) mapModal.style.display = "none";
   }
 
   function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax, leftText="", rightText="" }){
@@ -2060,7 +2631,7 @@
   }
 
   function damageProfileText(attackerId){
-    const order = ["INF","TANK","MDT","ART","RKT"];
+    const order = ["INF","RECON","TANK","MDT","ART","RKT"];
     const table = DAMAGE_TABLE[attackerId];
     if(!table) return "Damage: —";
     const parts = [];
@@ -2176,7 +2747,8 @@
     raw *= attackMultiplier(attacker, defender);
 
     const defBonus = terrainDefenseBonus(defender.x, defender.y);
-    const reduction = clamp(0.10*defBonus, 0, 0.9);
+    // 1% per HP per star
+    const reduction = clamp(defBonus * (defender.hp/defender.def.maxHP) * 0.1, 0, 0.9);
     const base = Math.max(0, raw * (1 - reduction));
 
     const min = Math.max(0, Math.floor(base * 0.85));
@@ -2790,7 +3362,7 @@
    * UI Buttons
    ***********************************************************************/
   endTurnBtn.addEventListener("click", endTurn);
-  newBtn.addEventListener("click", freshMatch);
+  newBtn.addEventListener("click", openMapPicker);
   resetBtn.addEventListener("click", hardReset);
   openShopBtn.addEventListener("click", ()=>{ autoOpenShopForCurrentPlayer(); });
   unselectBtn.addEventListener("click", ()=>{
@@ -2807,6 +3379,29 @@
   if(p2ChooseCO) p2ChooseCO.addEventListener("click", ()=>openCOModal(2));
   if(p1COCard) p1COCard.addEventListener("click", ()=>openCOModal(1));
   if(p2COCard) p2COCard.addEventListener("click", ()=>openCOModal(2));
+  if(p1NameLabel) p1NameLabel.addEventListener("click", ()=>{
+    const val = prompt("Rename Player 1", owningPlayer(1).name);
+    if(val!==null) setPlayerName(1, val);
+  });
+  if(p2NameLabel) p2NameLabel.addEventListener("click", ()=>{
+    const val = prompt("Rename Player 2", owningPlayer(2).name);
+    if(val!==null) setPlayerName(2, val);
+  });
+  if(closeMapModal) closeMapModal.addEventListener("click", closeMapPicker);
+  if(applyCustomMapBtn) applyCustomMapBtn.addEventListener("click", ()=>{
+    Game.selectedMap = "CUSTOM";
+    Game.customMapText = gridToText(customGrid);
+    closeMapPicker();
+    freshMatch();
+  });
+  if(fillPlainsBtn) fillPlainsBtn.addEventListener("click", ()=>{
+    customGrid = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>"."));
+    renderCustomGrid();
+  });
+  if(resetCustomBtn) resetCustomBtn.addEventListener("click", ()=>{
+    initCustomGridFromText(DEFAULT_CUSTOM_MAP);
+    renderCustomGrid();
+  });
   if(p1TopAvatar){
     p1TopAvatar.addEventListener("click", ()=>openCOModal(1));
     p1TopAvatar.addEventListener("mouseenter", ()=>showTooltip(p1TopTooltip, p1TopAvatar));
