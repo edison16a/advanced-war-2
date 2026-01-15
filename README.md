@@ -1,4 +1,4 @@
-# Advanced War 2 (HTML Remake) — 2 Player Mode
+# Advanced War 2 (HTML Remake) - 2 Player Mode
 
 A lightweight, browser-based remake inspired by classic turn-based strategy gameplay. Built in **plain HTML/CSS/JavaScript** for quick local play with **2 players on the same device** (hotseat).
 
@@ -7,6 +7,8 @@ A lightweight, browser-based remake inspired by classic turn-based strategy game
 - Runs locally
 - Simple controls and fast restart loop
 - Clean, minimal UI for quick gameplay
+- Many Maps and Characters
+- Create Custom Maps
 
 Or try it out here: https://advanced-war-2.vercel.app/
 
