@@ -2650,7 +2650,7 @@
   function formatRangeText(rangeMin, rangeMax, move=0, isRocket=false){
     if(isRocket){
       const threat = rangeMax + move;
-      return `${rangeMin}-${rangeMax} (max reach ${threat} w/ move)`;
+      return `${rangeMin}-${rangeMax}`;
     }
     return `${rangeMin}-${rangeMax}`;
   }
