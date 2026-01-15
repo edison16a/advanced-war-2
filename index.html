@@ -2716,22 +2716,24 @@
    * Combat
    ***********************************************************************/
   function terrainDefenseBonus(x,y){
-    // stars * (defender HP / 10) => % reduction
+    // Number of defense stars on the tile; converted to a flat % reduction elsewhere.
     const stars = tileDefenseStat(x,y);
     return stars;
   }
 
   function computeDamageRoll(attacker, defender){
+    const stars = terrainDefenseBonus(defender.x, defender.y);
+    // Terrain defense reduces damage, but keep it independent of current HP so
+    // we apply the advertised ranges directly.
+    const defScale = 1 - clamp(stars * 0.1, 0, 0.9);
+    const mult = attackMultiplier(attacker, defender);
+
     const entry = getDamageRangeEntry(attacker.def.id, defender.def.id);
     if(entry){
       const [minBase, maxBase] = entry;
-      const hpScale = attacker.hp / attacker.def.maxHP;
-      const mult = attackMultiplier(attacker, defender);
-      const stars = terrainDefenseBonus(defender.x, defender.y);
-      const defScale = 1 - clamp(stars * (defender.hp / defender.def.maxHP) * 0.1, 0, 0.9);
 
-      const scaledMin = minBase * hpScale * mult * defScale;
-      const scaledMax = maxBase * hpScale * mult * defScale;
+      const scaledMin = minBase * mult * defScale;
+      const scaledMax = maxBase * mult * defScale;
 
       const min = clamp(Math.floor(scaledMin), 0, defender.def.maxHP);
       const max = clamp(Math.ceil(scaledMax), min, defender.def.maxHP);
@@ -2741,18 +2743,10 @@
 
     // Fallback to legacy calculation if a matchup isn't defined.
     const atkBase = attacker.def.baseAtk[defender.def.id] ?? 4;
-    const hpFactor = attacker.hp / attacker.def.maxHP;
-    let raw = atkBase * (0.75 + 0.75*hpFactor);
+    let raw = atkBase * mult * defScale;
 
-    raw *= attackMultiplier(attacker, defender);
-
-    const defBonus = terrainDefenseBonus(defender.x, defender.y);
-    // 1% per HP per star
-    const reduction = clamp(defBonus * (defender.hp/defender.def.maxHP) * 0.1, 0, 0.9);
-    const base = Math.max(0, raw * (1 - reduction));
-
-    const min = Math.max(0, Math.floor(base * 0.85));
-    const max = Math.max(min, Math.ceil(base * 1.15));
+    const min = Math.max(0, Math.floor(raw * 0.85));
+    const max = Math.max(min, Math.ceil(raw * 1.15));
     const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
     return { roll, min, max };
   }
