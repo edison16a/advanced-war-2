@@ -737,7 +737,15 @@
     MDT: { 1:["assets/blue_mdtank.png"], 2:["assets/red_mdtank.png"] },
     ART: { 1:["assets/blue_art.png"], 2:["assets/red_art.png"] },
     RKT: { 1:["assets/blue_rocket.png"], 2:["assets/red_rocket.png"] },
-    APC: { 1:["assets/blue_apc.png"], 2:["assets/red_apc.png"] }
+    APC: { 1:["assets/blue_apc.png"], 2:["assets/red_apc.png"] },
+    CRU: { 1:["assets/blue_cruiser.png"], 2:["assets/red_cruiser.png"] },
+    SUB: { 1:["assets/blue_submarine.png"], 2:["assets/red_submarine.png"] },
+    LND: { 1:["assets/blue_lander.png"], 2:["assets/red_lander.png"] },
+    BSH: { 1:["assets/blue_battleship.png"], 2:["assets/red_battleship.png"] },
+    FTR: { 1:["assets/blue_fighter.png"], 2:["assets/red_fighter.png"] },
+    BMB: { 1:["assets/blue_bomber.png"], 2:["assets/red_bomber.png"] },
+    BC:  { 1:["assets/blue_battle.png"], 2:["assets/red_battle.png"] },
+    TC:  { 1:["assets/blue_transport.png"], 2:["assets/red_transport.png"] }
   };
   const SPRITE_IMAGES = {};
 
@@ -775,11 +783,11 @@
   }
 
   const TERRAIN = {
-    PLAINS:  { id:"PLAINS",  name:"Grass",   moveCost:{foot:1,tread:1,tires:1}, def:0, color:"#143a2a" },
-    FOREST:  { id:"FOREST",  name:"Forest",  moveCost:{foot:1,tread:2,tires:2}, def:1, color:"#0f2f21" },
-    MOUNTAIN:{ id:"MOUNTAIN",name:"Mountain",moveCost:{foot:2,tread:99,tires:99},def:2, color:"#2a2b35" },
-    ROAD:    { id:"ROAD",    name:"Road",    moveCost:{foot:1,tread:1,tires:1}, def:0, color:"#2a2f3a" },
-    WATER:   { id:"WATER",   name:"Water",   moveCost:{foot:2,tread:99,tires:99},def:0, color:"#0a2542" }
+    PLAINS:  { id:"PLAINS",  name:"Grass",   moveCost:{foot:1,tread:1,tires:1,sea:99,air:1}, def:0, color:"#143a2a" },
+    FOREST:  { id:"FOREST",  name:"Forest",  moveCost:{foot:1,tread:2,tires:2,sea:99,air:1}, def:1, color:"#0f2f21" },
+    MOUNTAIN:{ id:"MOUNTAIN",name:"Mountain",moveCost:{foot:2,tread:99,tires:99,sea:99,air:1},def:2, color:"#2a2b35" },
+    ROAD:    { id:"ROAD",    name:"Road",    moveCost:{foot:1,tread:1,tires:1,sea:99,air:1}, def:0, color:"#2a2f3a" },
+    WATER:   { id:"WATER",   name:"Water",   moveCost:{foot:2,tread:99,tires:99,sea:1,air:1},def:0, color:"#0a2542" }
   };
 
   const BUILDING = {
@@ -882,7 +890,111 @@
       baseAtk: {},
       armor: 0,
       transport: true,
+      transportCapacity: 1,
       canAttack: false
+    },
+
+    CRU: {
+      id:"CRU", name:"Cruiser", abbr:"CRU",
+      cost: 18000,
+      maxHP: 10,
+      move: 6,
+      movementType: "sea",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 1
+    },
+
+    SUB: {
+      id:"SUB", name:"Submarine", abbr:"SUB",
+      cost: 20000,
+      maxHP: 10,
+      move: 5,
+      movementType: "sea",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 1
+    },
+
+    LND: {
+      id:"LND", name:"Lander", abbr:"LND",
+      cost: 12000,
+      maxHP: 10,
+      move: 6,
+      movementType: "sea",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 0,
+      transport: true,
+      transportCapacity: 2,
+      canAttack: false
+    },
+
+    BSH: {
+      id:"BSH", name:"Battleship", abbr:"BSH",
+      cost: 28000,
+      maxHP: 10,
+      move: 5,
+      movementType: "sea",
+      rangeMin: 2, rangeMax: 6,
+      canCapture: false,
+      baseAtk: {},
+      armor: 2,
+      indirect: true
+    },
+
+    FTR: {
+      id:"FTR", name:"Fighter", abbr:"FTR",
+      cost: 20000,
+      maxHP: 10,
+      move: 9,
+      movementType: "air",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 1
+    },
+
+    BC: {
+      id:"BC", name:"B-Copter", abbr:"BCP",
+      cost: 9000,
+      maxHP: 10,
+      move: 6,
+      movementType: "air",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 1
+    },
+
+    TC: {
+      id:"TC", name:"T-Copter", abbr:"TCP",
+      cost: 5000,
+      maxHP: 10,
+      move: 6,
+      movementType: "air",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 0,
+      transport: true,
+      transportCapacity: 1,
+      canAttack: false
+    },
+
+    BMB: {
+      id:"BMB", name:"Bomber", abbr:"BMB",
+      cost: 22000,
+      maxHP: 10,
+      move: 7,
+      movementType: "air",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 1
     }
   };
 
@@ -931,7 +1043,11 @@
       ART: [7,8],
       RKT: [8,8],
       APC: [7,8],
-      RECON: [8,8]
+      RECON: [8,8],
+      BSH: [4,5],
+      CRU: [6,7],
+      SUB: [6,7],
+      LND: [5,6]
     },
     RKT: {
       INF: [9,10],
@@ -940,10 +1056,67 @@
       ART: [8,9],
       RKT: [8,9],
       RECON: [8,9],
-      APC: [8,9]
+      APC: [8,9],
+      BSH: [5,6],
+      CRU: [8,9],
+      SUB: [8,9],
+      LND: [6,7]
     },
     APC: {
       // unarmed; kept for completeness (no attack)
+    },
+    CRU: {
+      SUB: [8,9],
+      CRU: [2,3],
+      BSH: [0,1],
+      LND: [0,0]
+    },
+    SUB: {
+      BSH: [5,6],
+      CRU: [2,3],
+      SUB: [5,6],
+      LND: [9,10]
+    },
+    BSH: {
+      BSH: [5,6],
+      CRU: [4,5],
+      LND: [9,10],
+      SUB: [9,10],
+      INF: [9,10],
+      RECON: [9,10],
+      TANK: [7,8],
+      MDT: [5,6],
+      ART: [8,9],
+      RKT: [8,9],
+      APC: [8,9]
+    },
+    FTR: {
+      FTR: [5,6],
+      BMB: [10,10],
+      BC: [10,10],
+      TC: [10,10]
+    },
+    BC: {
+      FTR: [1,2],
+      BMB: [2,3],
+      BC: [4,5],
+      TC: [8,9]
+    },
+    TC: {
+      // unarmed
+    },
+    BMB: {
+      BSH: [5,6],
+      CRU: [5,6],
+      LND: [9,10],
+      SUB: [9,10],
+      INF: [10,10],
+      RECON: [10,10],
+      TANK: [10,10],
+      MDT: [9,10],
+      ART: [10,10],
+      RKT: [10,10],
+      APC: [10,10]
     }
   };
 
@@ -955,7 +1128,15 @@
     TANK: "Versatile front-line tanks designed to lead the charge",
     MDT: "Heavily armored juggernauts capable of dealing lots of damage",
     RKT: "Long-range siege launchers that pack a crazy punch",
-    APC: "Transports one infantry; unarmed but fast on treads; left-click to load, right-click to unload"
+    APC: "Transports one infantry; unarmed but fast on treads; left-click to load, right-click to unload",
+    CRU: "Escort cruiser that hunts subs and swats air; best at sinking stealthy subs.",
+    SUB: "Stealth assassin of the seas; primary counter to Battleships and Landers.",
+    LND: "Non-combat transport that ferries two land units across the sea; unload only onto land tiles.",
+    BSH: "Indirect naval artillery; bombards sea and land from long range.",
+    FTR: "Elite interceptor; dominates other air units (especially bombers).",
+    BC: "Defensive battle copter that trades blows with other copters.",
+    TC: "Unarmed transport copter; carries one infantry over any terrain.",
+    BMB: "Heavy bomber that crushes land and naval targets; vulnerable to fighters."
   };
 
   const PLAYERS = [
@@ -1218,7 +1399,7 @@
       acted: false,
       actionsLeft: 1,
       spriteIdx,
-      cargo: null
+      cargo: def.transport ? [] : null
     };
   }
 
@@ -1489,8 +1670,11 @@
   function removeUnit(u){
     const idx = Game.units.findIndex(z => z.uid===u.uid);
     if(u.cargo){
-      logLine(`${u.cargo.def.name} lost with ${u.def.name}.`, u.cargo.owner);
-      u.cargo = null;
+      const cargos = Array.isArray(u.cargo) ? u.cargo : [u.cargo];
+      for(const c of cargos){
+        if(c) logLine(`${c.def?.name || c.typeId} lost with ${u.def.name}.`, c.owner);
+      }
+      u.cargo = Array.isArray(u.cargo) ? [] : null;
     }
     if(idx>=0) Game.units.splice(idx,1);
   }
@@ -2162,13 +2346,29 @@
     { id:"P1_ART",  char:"E", label:"P1 Artillery", layer:"unit", owner:1, unit:"ART", color:COLORS.p1Dark },
     { id:"P1_RKT",  char:"F", label:"P1 Rockets",   layer:"unit", owner:1, unit:"RKT", color:COLORS.p1Dark },
     { id:"P1_APC",  char:"G", label:"P1 APC",       layer:"unit", owner:1, unit:"APC", color:COLORS.p1Dark },
+    { id:"P1_CRU",  char:"H", label:"P1 Cruiser",   layer:"unit", owner:1, unit:"CRU", color:COLORS.p1Dark },
+    { id:"P1_SUB",  char:"I", label:"P1 Submarine", layer:"unit", owner:1, unit:"SUB", color:COLORS.p1Dark },
+    { id:"P1_LND",  char:"J", label:"P1 Lander",    layer:"unit", owner:1, unit:"LND", color:COLORS.p1Dark },
+    { id:"P1_BSH",  char:"K", label:"P1 Battleship",layer:"unit", owner:1, unit:"BSH", color:COLORS.p1Dark },
+    { id:"P1_FTR",  char:"L", label:"P1 Fighter",   layer:"unit", owner:1, unit:"FTR", color:COLORS.p1Dark },
+    { id:"P1_BC",   char:"M", label:"P1 B-Copter",  layer:"unit", owner:1, unit:"BC",  color:COLORS.p1Dark },
+    { id:"P1_TC",   char:"N", label:"P1 T-Copter",  layer:"unit", owner:1, unit:"TC",  color:COLORS.p1Dark },
+    { id:"P1_BMB",  char:"O", label:"P1 Bomber",    layer:"unit", owner:1, unit:"BMB", color:COLORS.p1Dark },
     { id:"P2_INF",  char:"a", label:"P2 Infantry",  layer:"unit", owner:2, unit:"INF", color:COLORS.p2Dark },
     { id:"P2_RECON",char:"b", label:"P2 Recon",     layer:"unit", owner:2, unit:"RECON", color:COLORS.p2Dark },
     { id:"P2_TANK", char:"c", label:"P2 Tank",      layer:"unit", owner:2, unit:"TANK", color:COLORS.p2Dark },
     { id:"P2_MDT",  char:"d", label:"P2 Md Tank",   layer:"unit", owner:2, unit:"MDT", color:COLORS.p2Dark },
     { id:"P2_ART",  char:"e", label:"P2 Artillery", layer:"unit", owner:2, unit:"ART", color:COLORS.p2Dark },
     { id:"P2_RKT",  char:"f", label:"P2 Rockets",   layer:"unit", owner:2, unit:"RKT", color:COLORS.p2Dark },
-    { id:"P2_APC",  char:"g", label:"P2 APC",       layer:"unit", owner:2, unit:"APC", color:COLORS.p2Dark }
+    { id:"P2_APC",  char:"g", label:"P2 APC",       layer:"unit", owner:2, unit:"APC", color:COLORS.p2Dark },
+    { id:"P2_CRU",  char:"h", label:"P2 Cruiser",   layer:"unit", owner:2, unit:"CRU", color:COLORS.p2Dark },
+    { id:"P2_SUB",  char:"i", label:"P2 Submarine", layer:"unit", owner:2, unit:"SUB", color:COLORS.p2Dark },
+    { id:"P2_LND",  char:"j", label:"P2 Lander",    layer:"unit", owner:2, unit:"LND", color:COLORS.p2Dark },
+    { id:"P2_BSH",  char:"k", label:"P2 Battleship",layer:"unit", owner:2, unit:"BSH", color:COLORS.p2Dark },
+    { id:"P2_FTR",  char:"l", label:"P2 Fighter",   layer:"unit", owner:2, unit:"FTR", color:COLORS.p2Dark },
+    { id:"P2_BC",   char:"m", label:"P2 B-Copter",  layer:"unit", owner:2, unit:"BC",  color:COLORS.p2Dark },
+    { id:"P2_TC",   char:"n", label:"P2 T-Copter",  layer:"unit", owner:2, unit:"TC",  color:COLORS.p2Dark },
+    { id:"P2_BMB",  char:"o", label:"P2 Bomber",    layer:"unit", owner:2, unit:"BMB", color:COLORS.p2Dark }
   ];
 
   const CUSTOM_ENTRIES = [...CUSTOM_TILES, ...CUSTOM_UNITS];
@@ -2230,22 +2430,36 @@
         funds: Game.funds,
         terrain: Game.terrain.map(row=>row.map(t=>t.id)),
         buildings: Game.buildings.map(row=>row.map(b=> b ? { kindId:b.kindId, owner:b.owner, capturePoints:b.capturePoints } : null)),
-        units: Game.units.map(u=>({
-          typeId: u.typeId,
-          owner: u.owner,
-          x: u.x, y: u.y,
-          hp: u.hp,
-          moved: u.moved,
-          acted: u.acted,
-          actionsLeft: u.actionsLeft,
-          spriteIdx: u.spriteIdx,
-          cargo: u.cargo ? {
-            typeId: u.cargo.typeId,
-            owner: u.cargo.owner,
-            hp: u.cargo.hp,
-            spriteIdx: u.cargo.spriteIdx
-          } : null
-        })),
+        units: Game.units.map(u=>{
+          const base = {
+            typeId: u.typeId,
+            owner: u.owner,
+            x: u.x, y: u.y,
+            hp: u.hp,
+            moved: u.moved,
+            acted: u.acted,
+            actionsLeft: u.actionsLeft,
+            spriteIdx: u.spriteIdx
+          };
+          if(u.cargo){
+            base.cargo = Array.isArray(u.cargo)
+              ? u.cargo.map(c=> c ? ({
+                typeId: c.typeId,
+                owner: c.owner,
+                hp: c.hp,
+                spriteIdx: c.spriteIdx
+              }) : null)
+              : {
+                typeId: u.cargo.typeId,
+                owner: u.cargo.owner,
+                hp: u.cargo.hp,
+                spriteIdx: u.cargo.spriteIdx
+              };
+          } else {
+            base.cargo = null;
+          }
+          return base;
+        }),
         coChoice: Game.coChoice,
         coMeter: Game.coMeter,
         coState: Game.coState,
@@ -2320,14 +2534,29 @@
           nu.actionsLeft = u.actionsLeft ?? 1;
           nu.spriteIdx = u.spriteIdx ?? 0;
           if(u.cargo){
-            const def = UNIT_DEF[u.cargo.typeId];
-            nu.cargo = {
-              typeId: u.cargo.typeId,
-              owner: u.cargo.owner,
-              hp: u.cargo.hp ?? (def ? def.maxHP : 10),
-              spriteIdx: u.cargo.spriteIdx ?? 0,
-              def
-            };
+            if(Array.isArray(u.cargo)){
+              nu.cargo = [];
+              for(const c of u.cargo){
+                if(!c) continue;
+                const def = UNIT_DEF[c.typeId];
+                nu.cargo.push({
+                  typeId: c.typeId,
+                  owner: c.owner,
+                  hp: c.hp ?? (def ? def.maxHP : 10),
+                  spriteIdx: c.spriteIdx ?? 0,
+                  def
+                });
+              }
+            } else {
+              const def = UNIT_DEF[u.cargo.typeId];
+              nu.cargo = {
+                typeId: u.cargo.typeId,
+                owner: u.cargo.owner,
+                hp: u.cargo.hp ?? (def ? def.maxHP : 10),
+                spriteIdx: u.cargo.spriteIdx ?? 0,
+                def
+              };
+            }
           }
           Game.units.push(nu);
         }
@@ -2641,6 +2870,19 @@
     }
   }
 
+  function spawnDefaultAirportUnits(){
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = buildingAt(x,y);
+        if(b && b.kindId==="AIRPORT" && b.owner){
+          if(!unitAt(x,y)){
+            Game.units.push(makeUnit("BC", b.owner, x, y));
+          }
+        }
+      }
+    }
+  }
+
   function freshMatch(){
     Game.day = 1;
     Game.currentPlayer = 1;
@@ -2670,6 +2912,7 @@
     if(!Game.customMapText) Game.customMapText = DEFAULT_CUSTOM_MAP;
 
     applySelectedMap();
+    spawnDefaultAirportUnits();
 
     if(Game.selectedMap!=="CUSTOM"){
       // Starting units (balanced; includes some new unit types)
@@ -3513,6 +3756,16 @@
     {dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}
   ];
 
+  function hasAdjacentLand(x,y){
+    for(const d of DIRS){
+      const nx = x+d.dx, ny = y+d.dy;
+      if(!inBounds(nx,ny)) continue;
+      const t = terrainAt(nx,ny);
+      if(t && t.id!=="WATER") return true;
+    }
+    return false;
+  }
+
   function isTileBlockedForMovement(x,y, movingUnit){
     const u = unitAt(x,y);
     if(!u) return false;
@@ -3522,6 +3775,10 @@
   function movementCost(unit, x, y){
     const t = terrainAt(x,y);
     const mtype = unit.def.movementType;
+    if(mtype==="foot" && t.id==="WATER"){
+      // Foot units can only step on water if adjacent to land (shoreline)
+      if(!hasAdjacentLand(x,y)) return 99;
+    }
     const cost = t.moveCost[mtype] ?? 99;
     return cost;
   }
@@ -3668,23 +3925,38 @@
     const {x,y} = parseKey(k);
     const target = unitAt(x,y);
     if(!target) return false;
-    return target.owner !== unit.owner;
+    return target.owner !== unit.owner && canTarget(unit, target);
   }
 
-  function unloadCargo(apc, x, y){
-    if(!apc || !isAPC(apc) || !apc.cargo) return false;
-    if(!adjacent({x:apc.x,y:apc.y},{x,y})) return false;
+  function canUnloadToTile(transporter, x, y){
+    if(!transporter || !transporter.def.transport) return false;
+    if(!adjacent({x:transporter.x,y:transporter.y},{x,y})) return false;
     if(unitAt(x,y)) return false;
-    const cargo = apc.cargo;
+    const t = terrainAt(x,y);
+    if(isLander(transporter)){
+      if(!t || t.id==="WATER") return false;
+    }
+    if(transporter.def.id==="TC"){
+      if(!t || t.id==="WATER") return false;
+    }
+    return true;
+  }
+
+  function unloadCargo(transporter, x, y){
+    if(!transporter || !transporter.def.transport || !transporter.cargo) return false;
+    if(!canUnloadToTile(transporter, x, y)) return false;
+    const list = Array.isArray(transporter.cargo) ? transporter.cargo : [transporter.cargo];
+    if(!list.length) return false;
+    const cargo = list.shift();
     const nu = makeUnit(cargo.typeId, cargo.owner, x, y);
     nu.hp = cargo.hp ?? nu.def.maxHP;
     nu.spriteIdx = cargo.spriteIdx ?? 0;
     nu.moved = true;
     nu.acted = true;
     Game.units.push(nu);
-    apc.cargo = null;
-    apc.acted = true;
-    logLine(`${owningPlayer(apc.owner).name} unloads ${nu.def.name}.`, apc.owner);
+    transporter.cargo = Array.isArray(transporter.cargo) ? list : (list[0] || null);
+    transporter.acted = true;
+    logLine(`${owningPlayer(transporter.owner).name} unloads ${nu.def.name}.`, transporter.owner);
     updateUI();
     return true;
   }
@@ -3692,8 +3964,62 @@
   function isDirectUnit(u){ return !u.def.indirect; }
   function isIndirectUnit(u){ return !!u.def.indirect; }
   function isInfantry(u){ return u.def.id==="INF"; }
-  function canLoadIntoAPC(u){ return u.def.id==="INF"; }
   function isAPC(u){ return u.def.id==="APC"; }
+  function isLander(u){ return u.def.id==="LND"; }
+  function isSeaUnit(u){ return u.def.movementType==="sea"; }
+  function transportCapacity(u){ return u.def.transportCapacity || 1; }
+  function cargoCount(u){
+    if(!u || !u.cargo) return 0;
+    if(Array.isArray(u.cargo)) return u.cargo.length;
+    return 1;
+  }
+  function transportFull(u){
+    if(!u || !u.def.transport) return true;
+    return cargoCount(u) >= transportCapacity(u);
+  }
+  function isLandUnit(u){ return !isSeaUnit(u); }
+  function canLandAttackSea(attacker){ return attacker.def.id==="ART" || attacker.def.id==="RKT"; }
+  function canTarget(attacker, target){
+    if(!attacker || !target) return false;
+    const atkSea = isSeaUnit(attacker);
+    const defSea = isSeaUnit(target);
+    const atkAir = attacker.def.movementType==="air";
+    const defAir = target.def.movementType==="air";
+
+    if(atkSea){
+      if(attacker.def.id==="BSH"){
+        return defSea || !defAir; // battleship can hit sea and land
+      }
+      return defSea; // other sea units hit sea only
+    }
+
+    if(atkAir){
+      if(attacker.def.id==="BMB"){
+        // Bomber hits land+sea, not air
+        return !defAir;
+      }
+      // Fighters/BC/TC only hit air (TC cannot attack anyway)
+      return defAir;
+    }
+
+    // Land attackers
+    if(defSea){
+      return canLandAttackSea(attacker) && (target.def.id==="BSH" || target.def.id==="SUB" || target.def.id==="CRU" || target.def.id==="LND");
+    }
+    return true;
+  }
+  function canLoadIntoTransport(transporter, passenger){
+    if(!transporter || !passenger) return false;
+    if(!transporter.def.transport) return false;
+    if(transporter.owner !== passenger.owner) return false;
+    if(transportFull(transporter)) return false;
+    if(passenger.uid===transporter.uid) return false;
+    if(passenger.def.transport) return false;
+    if(isSeaUnit(passenger)) return false; // no sea-into-sea
+    if(isLander(transporter)) return true; // any land unit
+    if(transporter.def.id==="TC") return isInfantry(passenger); // transport copter: infantry only
+    return isAPC(transporter) && isInfantry(passenger); // APC only infantry
+  }
 
   const NO_PROJECTION_ATTACK_UNITS = new Set(["INF","RECON","TANK","MDT"]);
 
@@ -3827,8 +4153,16 @@
     return table[defenderId] || null;
   }
 
+  const CUSTOM_DAMAGE_TEXT = {
+    BC: "Damage: FTR 1-2 • BMB 2-3 • B-CPT 4-5 • T-CPT 8-9",
+    FTR: "Damage: FTR 5-6 • BMB 10 • B-CPT 10 • T-CPT 10",
+    BMB: "Damage: BSH 5-6 • CRU 5-6 • LND 9-10 • SUB 9-10 • INF 10 • RCN 10 • TNK 10 • MDT 9-10 • ART 10 • RKT 10 • APC 10",
+    TC: "Damage: N/A"
+  };
+
   function damageProfileText(attackerId){
-    const order = ["INF","RECON","TANK","MDT","ART","RKT","APC"];
+    if(CUSTOM_DAMAGE_TEXT[attackerId]) return CUSTOM_DAMAGE_TEXT[attackerId];
+    const order = ["INF","RECON","TANK","MDT","ART","RKT","APC","CRU","SUB","BSH","LND","FTR","BC","TC","BMB"];
     const table = DAMAGE_TABLE[attackerId];
     if(!table) return "Damage: —";
     const parts = [];
@@ -3866,7 +4200,8 @@
   }
 
   function damageDisplayText(attackerId){
-    if(attackerId==="APC") return "Damage: N/A";
+    const def = UNIT_DEF[attackerId];
+    if(def && def.canAttack===false) return "Damage: N/A";
     if(Game.dmgDetail){
       return damageProfileText(attackerId);
     }
@@ -3941,6 +4276,7 @@
   }
 
   function computeDamageRoll(attacker, defender, attackerHpOverride=null){
+    if(!canTarget(attacker, defender)) return { roll:0, min:0, max:0, stars:0, guardPct:0 };
     const stars = terrainDefenseBonus(defender.x, defender.y);
     const guardPct = allyCoverPct(defender);
     // Terrain + nearby ally cover reduce damage independently of HP.
@@ -3975,6 +4311,7 @@
   }
 
   function computeDamageMinMax(attacker, defender, attackerHpOverride=null){
+    if(!canTarget(attacker, defender)) return { min:0, max:0 };
     const stars = terrainDefenseBonus(defender.x, defender.y);
     const guardPct = allyCoverPct(defender);
     const defScale = (1 - clamp(stars * 0.1, 0, 0.9)) * (1 - guardPct);
@@ -4023,6 +4360,7 @@
 
   function canRetaliate(defender, attacker){
     if(defender.def.indirect) return false;
+    if(!canTarget(defender, attacker)) return false;
     const d = manhattan({x:defender.x,y:defender.y},{x:attacker.x,y:attacker.y});
     const { minR, maxR } = getRangeForUnit(defender);
     return d>=minR && d<=maxR;
@@ -4041,6 +4379,7 @@
     if(Game.gameOver) return;
     if(attacker.acted) return;
     if(isIndirectUnit(attacker) && attacker.moved) return;
+    if(!canTarget(attacker, defender)) return;
 
     const defBefore = defender.hp;
     const atkBefore = attacker.hp;
@@ -4210,8 +4549,8 @@
   const SHOP_UNITS = ["INF","APC","RECON","TANK","MDT","ART","RKT"];
   const SHOP_CATEGORIES = {
     LAND: ["INF","APC","RECON","TANK","MDT","ART","RKT"],
-    AIR: [],
-    WATER: []
+    AIR: ["FTR","BC","TC","BMB"],
+    WATER: ["LND","CRU","SUB","BSH"]
   };
   const PRODUCTION_BUILDINGS = new Set(["BASE","AIRPORT","SHIPPORT"]);
   const CATEGORY_LABEL = { LAND:"land", AIR:"air", WATER:"naval" };
@@ -4524,7 +4863,7 @@
       }
 
       const label = document.createElement("div");
-      label.innerHTML = `<div style="font-weight:800">${t.name}</div><div class="muted" style="font-size:12px">Move: foot ${t.moveCost.foot}, tread ${t.moveCost.tread}, tires ${t.moveCost.tires ?? "—"}</div>`;
+      label.innerHTML = `<div style="font-weight:800">${t.name}</div><div class="muted" style="font-size:12px">Move: foot ${t.moveCost.foot}, tread ${t.moveCost.tread}, tires ${t.moveCost.tires ?? "—"}, sea ${t.moveCost.sea ?? "—"}</div>`;
 
       left.appendChild(sw);
       left.appendChild(label);
@@ -4609,10 +4948,17 @@
 
         // Boarding: infantry -> adjacent friendly APC
         const targetUnit = unitAt(x,y);
-        if(targetUnit && isAPC(targetUnit) && targetUnit.owner===su.owner && canLoadIntoAPC(su) && !targetUnit.cargo && adjacent({x:su.x,y:su.y},{x,y})){
-          targetUnit.cargo = { typeId: su.typeId, owner: su.owner, hp: su.hp, spriteIdx: su.spriteIdx, def: su.def };
+        if(targetUnit && targetUnit.owner===su.owner && targetUnit.def.transport && canLoadIntoTransport(targetUnit, su) && adjacent({x:su.x,y:su.y},{x,y})){
+          const cargoObj = { typeId: su.typeId, owner: su.owner, hp: su.hp, spriteIdx: su.spriteIdx, def: su.def };
+          if(Array.isArray(targetUnit.cargo)){
+            targetUnit.cargo.push(cargoObj);
+          } else if(targetUnit.cargo){
+            targetUnit.cargo = [targetUnit.cargo, cargoObj];
+          } else {
+            targetUnit.cargo = [cargoObj];
+          }
           removeUnit(su);
-          logLine(`${owningPlayer(targetUnit.owner).name} loads ${targetUnit.cargo.def.name} into APC.`, targetUnit.owner);
+          logLine(`${owningPlayer(targetUnit.owner).name} loads ${cargoObj.def.name} into ${targetUnit.def.name}.`, targetUnit.owner);
           selectUnit(targetUnit);
           updateUI();
           return;
@@ -4650,8 +4996,8 @@
 
     // selection order: unit -> building -> tile
     if(u){
-      // Unload if APC with cargo and clicking adjacent empty tile
-      if(isAPC(u) && u.owner===Game.currentPlayer && u.cargo && !unitAt(x,y) && adjacent({x:u.x,y:u.y},{x,y})){
+      // Unload if transport with cargo and clicking adjacent empty tile
+      if(u.def.transport && u.owner===Game.currentPlayer && u.cargo && !unitAt(x,y) && adjacent({x:u.x,y:u.y},{x,y})){
         if(unloadCargo(u,x,y)) return;
       }
       selectUnit(u);
@@ -4669,11 +5015,11 @@
 
   function onRightClick(e){
     e.preventDefault();
-    // allow right-click unload for APC cargo
+    // allow right-click unload for transport cargo
     if(Game.sel && Game.sel.type==="unit"){
       const u = Game.sel.unit;
       const g = canvasToGrid(e.clientX, e.clientY);
-      if(isAPC(u) && u.cargo && inBounds(g.x,g.y)){
+      if(u.def.transport && u.cargo && inBounds(g.x,g.y)){
         if(unloadCargo(u, g.x, g.y)) return;
       }
     }
@@ -5149,7 +5495,9 @@
         ctx.strokeRect(px+4, py+TILE-14, TILE-8, 10);
         ctx.fillStyle = "#e8eeff";
         ctx.font = "bold 9px system-ui";
-        ctx.fillText("CARGO", px+8, py+TILE-6);
+        const cap = transportCapacity(u);
+        const cnt = cargoCount(u);
+        ctx.fillText(`CARGO ${cnt}/${cap}`, px+6, py+TILE-6);
       }
     }
   }
