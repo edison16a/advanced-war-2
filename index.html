@@ -453,8 +453,8 @@
         <div id="shopBox" class="floatingPanel">
           <div class="headerRow">
             <div>
-              <div class="big" style="font-size:16px">Base Shop</div>
-              <div class="muted" id="shopHint">Build units on your base.</div>
+              <div class="big" style="font-size:16px">Production Shop</div>
+              <div class="muted" id="shopHint">Build units on your production tiles.</div>
             </div>
             <button class="btn" id="closeShopBtn">Close (Esc)</button>
           </div>
@@ -744,7 +744,9 @@
   const BUILDING_SOURCES = {
     HQ:   { 1:"assets/blue_hq.png", 2:"assets/red_hq.png", 0:"assets/building.png" },
     BASE: { 1:"assets/blue_base.png", 2:"assets/red_base.png", 0:"assets/building.png" },
-    CITY: { 1:"assets/blue_building.png", 2:"assets/red_building.png", 0:"assets/building.png" }
+    CITY: { 1:"assets/blue_building.png", 2:"assets/red_building.png", 0:"assets/building.png" },
+    AIRPORT: { 1:"assets/blue_airport.png", 2:"assets/red_airport.png", 0:"assets/blue_airport.png" },
+    SHIPPORT: { 1:"assets/blue_shipport.png", 2:"assets/red_shipport.png", 0:"assets/blue_shipport.png" }
   };
   const BUILDING_IMAGES = {};
 
@@ -783,7 +785,9 @@
   const BUILDING = {
     CITY: { id:"CITY", name:"City", income:1000, def:1 },
     BASE: { id:"BASE", name:"Base", income:1000, def:1 },
-    HQ:   { id:"HQ",   name:"HQ",   income:1000, def:3 }
+    HQ:   { id:"HQ",   name:"HQ",   income:1000, def:3 },
+    AIRPORT: { id:"AIRPORT", name:"Airport", income:1000, def:1 },
+    SHIPPORT: { id:"SHIPPORT", name:"Ship Port", income:1000, def:1 }
   };
 
   // Unit definitions
@@ -1190,7 +1194,8 @@
     customMapText: "",
     winner: null,
     winReason: null,
-    botMode: "HUMAN" // HUMAN | EASY | MED | HARD
+    botMode: "HUMAN", // HUMAN | EASY | MED | HARD
+    shopCategory: "LAND"
   };
 
   /***********************************************************************
@@ -1283,12 +1288,12 @@
     return img ? img.src : "";
   }
 
-  function getOwnedBases(playerId){
+  function getOwnedProduction(playerId){
     const bases = [];
     for(let y=0;y<GRID_H;y++){
       for(let x=0;x<GRID_W;x++){
         const b = buildingAt(x,y);
-        if(b && b.kindId==="BASE" && b.owner===playerId){
+        if(b && PRODUCTION_BUILDINGS.has(b.kindId) && b.owner===playerId){
           bases.push({b,x,y});
         }
       }
@@ -1298,7 +1303,7 @@
   }
 
   function pickNextBase(playerId){
-    const bases = getOwnedBases(playerId);
+    const bases = getOwnedProduction(playerId);
     if(!bases.length) return null;
     const idx = Game.baseCycleIdx[playerId] ?? 0;
     const choice = bases[idx % bases.length];
@@ -1420,7 +1425,7 @@
 
   function botTryBuy(difficulty){
     if(Game.gameOver) return;
-    const ownedBases = getOwnedBases(2);
+    const ownedBases = getOwnedProduction(2).filter(entry=>allowedCategoriesForBuilding(entry.b,2).includes("LAND"));
     const emptyBases = ownedBases.filter(b=>!unitAt(b.x,b.y));
     if(!emptyBases.length) return;
     const roll = Math.random();
@@ -1514,7 +1519,7 @@
     const b = buildingAt(x,y);
     if(b){
       if(b.kindId==="HQ") return 4;
-      if(b.kindId==="BASE" || b.kindId==="CITY") return 3;
+      if(b.kindId==="BASE" || b.kindId==="CITY" || b.kindId==="AIRPORT" || b.kindId==="SHIPPORT") return 3;
       return 0;
     }
     const t = terrainAt(x,y);
@@ -1528,6 +1533,20 @@
   function initEmptyLayers(){
     Game.terrain = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>TERRAIN.PLAINS));
     Game.buildings = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>null));
+  }
+
+  function makeCharGrid(fill="."){
+    return Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>fill));
+  }
+  function setChar(grid, x, y, ch){
+    if(!grid || !grid[y] || grid[y][x]===undefined) return;
+    grid[y][x] = ch;
+  }
+  function mirrorChars(grid, points, ch){
+    for(const p of points){
+      setChar(grid, p.x, p.y, ch);
+      setChar(grid, GRID_W-1-p.x, GRID_H-1-p.y, ch);
+    }
   }
 
   function placeBuilding(x,y, kindId, owner=null){
@@ -1766,6 +1785,323 @@
     for(const c of cities) placeBuilding(c.x,c.y,"CITY",null);
   }
 
+  function generateMapSkyRidge(){
+    const g = makeCharGrid(".");
+    for(let x=2;x<14;x++){
+      setChar(g,x,5,"=");
+      setChar(g,x,6,"=");
+    }
+    mirrorChars(g, [
+      {x:6,y:2},{x:7,y:3},{x:8,y:4},{x:9,y:5},
+      {x:6,y:7},{x:7,y:8},{x:5,y:6},{x:8,y:7}
+    ], "m");
+    mirrorChars(g, [
+      {x:3,y:4},{x:5,y:3},{x:4,y:5},{x:3,y:7},{x:5,y:8}
+    ], "f");
+    mirrorChars(g, [
+      {x:4,y:4},{x:7,y:5},{x:8,y:6},{x:2,y:7}
+    ], "c");
+
+    setChar(g,1,1,"H");
+    setChar(g,14,10,"R");
+    setChar(g,2,1,"1");
+    setChar(g,1,3,"1");
+    setChar(g,13,10,"2");
+    setChar(g,14,8,"2");
+    setChar(g,3,5,"P");
+    setChar(g,12,6,"q");
+    setChar(g,5,2,"c");
+    setChar(g,10,9,"c");
+    setChar(g,7,5,"c");
+    setChar(g,8,6,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapCliffLanding(){
+    const g = makeCharGrid(".");
+    for(let y=1;y<GRID_H-1;y++){
+      setChar(g,7,y,"=");
+      if(y>=3 && y<=8){
+        setChar(g,6,y,"=");
+        setChar(g,8,y,"=");
+      }
+    }
+    for(let x=3;x<13;x++){
+      setChar(g,x,5,"=");
+    }
+    mirrorChars(g, [
+      {x:5,y:1},{x:6,y:2},{x:7,y:3},{x:5,y:4},{x:6,y:5},{x:4,y:6},
+      {x:8,y:5},{x:7,y:6}
+    ], "m");
+    mirrorChars(g, [
+      {x:3,y:2},{x:4,y:4},{x:2,y:7},{x:3,y:8},{x:5,y:7}
+    ], "f");
+
+    setChar(g,1,2,"H");
+    setChar(g,14,9,"R");
+    setChar(g,3,2,"1");
+    setChar(g,1,4,"1");
+    setChar(g,12,9,"2");
+    setChar(g,14,7,"2");
+    setChar(g,4,5,"P");
+    setChar(g,11,6,"q");
+    mirrorChars(g, [{x:4,y:2},{x:5,y:3},{x:6,y:8}], "c");
+    setChar(g,7,4,"c");
+    setChar(g,8,7,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapSummitRunway(){
+    const g = makeCharGrid(".");
+    for(let x=0;x<GRID_W;x++){
+      if(x>2 && x<13){
+        setChar(g,x,5,"=");
+        setChar(g,x,6,"=");
+      }
+    }
+    mirrorChars(g, [
+      {x:5,y:2},{x:6,y:3},{x:7,y:3},{x:8,y:3},
+      {x:5,y:4},{x:9,y:4},{x:5,y:7},{x:9,y:7},
+      {x:6,y:8},{x:7,y:8},{x:8,y:8}
+    ], "m");
+    mirrorChars(g, [
+      {x:4,y:2},{x:4,y:8},{x:3,y:5},{x:3,y:6},{x:6,y:5}
+    ], "f");
+    mirrorChars(g, [
+      {x:2,y:9},{x:2,y:2},{x:7,y:5}
+    ], "c");
+
+    setChar(g,1,1,"H");
+    setChar(g,14,10,"R");
+    setChar(g,2,2,"1");
+    setChar(g,2,3,"1");
+    setChar(g,13,9,"2");
+    setChar(g,13,8,"2");
+    setChar(g,5,5,"P");
+    setChar(g,10,6,"q");
+    setChar(g,7,6,"c");
+    setChar(g,8,5,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapHarborSkies(){
+    const g = makeCharGrid(".");
+    // Wide central sea
+    for(let y=1;y<GRID_H-1;y++){
+      for(let x=5;x<=10;x++){
+        setChar(g,x,y,"~");
+      }
+    }
+    // Narrow mid bridge
+    setChar(g,7,5,"=");
+    setChar(g,7,6,"=");
+    setChar(g,8,5,"=");
+    setChar(g,8,6,"=");
+    // Coast detailing
+    mirrorChars(g, [{x:4,y:3},{x:4,y:8}], "f");
+    mirrorChars(g, [{x:3,y:5},{x:4,y:6}], "m");
+    mirrorChars(g, [{x:2,y:2},{x:2,y:9},{x:4,y:2},{x:4,y:9}], "c");
+
+    // Key structures
+    setChar(g,1,5,"H");
+    setChar(g,14,6,"R");
+    setChar(g,2,4,"1");
+    setChar(g,2,7,"1");
+    setChar(g,13,4,"2");
+    setChar(g,13,7,"2");
+    setChar(g,3,2,"P");
+    setChar(g,12,9,"q");
+    setChar(g,5,5,"S"); // on water edge
+    setChar(g,10,6,"t");
+    mirrorChars(g, [{x:2,y:5},{x:3,y:8},{x:5,y:2},{x:5,y:9}], "c");
+    setChar(g,7,1,"c");
+    setChar(g,8,10,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapTwinHarbors(){
+    const g = makeCharGrid(".");
+    // Large central gulf with thin crossing
+    for(let y=1;y<GRID_H-1;y++){
+      for(let x=4;x<=11;x++){
+        setChar(g,x,y,"~");
+      }
+    }
+    setChar(g,7,4,"=");
+    setChar(g,8,4,"=");
+    setChar(g,7,7,"=");
+    setChar(g,8,7,"=");
+    // Terrain on flanks
+    mirrorChars(g, [{x:2,y:3},{x:2,y:8}], "m");
+    mirrorChars(g, [{x:3,y:5},{x:3,y:6}], "f");
+    mirrorChars(g, [{x:1,y:2},{x:1,y:9}], "c");
+
+    setChar(g,1,5,"H");
+    setChar(g,14,6,"R");
+    setChar(g,2,4,"1");
+    setChar(g,2,7,"1");
+    setChar(g,13,4,"2");
+    setChar(g,13,7,"2");
+    setChar(g,2,2,"P");
+    setChar(g,13,9,"q");
+    setChar(g,4,6,"S");
+    setChar(g,11,5,"t");
+    mirrorChars(g, [{x:2,y:6},{x:3,y:2},{x:3,y:9}], "c");
+    setChar(g,7,1,"c");
+    setChar(g,8,10,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapIslandWings(){
+    const g = makeCharGrid(".");
+    // Oceanic center with small bridge
+    for(let y=0;y<GRID_H;y++){
+      for(let x=4;x<=11;x++){
+        setChar(g,x,y,"~");
+      }
+    }
+    setChar(g,7,5,"=");
+    setChar(g,8,6,"=");
+    // Coast and high ground on sides
+    mirrorChars(g, [{x:2,y:3},{x:2,y:8}], "m");
+    mirrorChars(g, [{x:1,y:4},{x:1,y:7}], "f");
+
+    setChar(g,1,5,"H");
+    setChar(g,14,6,"R");
+    setChar(g,2,4,"1");
+    setChar(g,2,7,"1");
+    setChar(g,13,4,"2");
+    setChar(g,13,7,"2");
+    setChar(g,2,2,"P");
+    setChar(g,13,9,"q");
+    setChar(g,4,6,"S");
+    setChar(g,11,5,"t");
+    mirrorChars(g, [{x:3,y:2},{x:3,y:9},{x:6,y:5}], "c");
+    setChar(g,7,1,"c");
+    setChar(g,8,10,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapGrandArmada(){
+    const g = makeCharGrid(".");
+    for(let y=2;y<=9;y++){
+      if(y>=4 && y<=7){
+        for(let x=6;x<=9;x++) setChar(g,x,y,"~");
+      } else {
+        setChar(g,7,y,"~");
+        setChar(g,8,y,"~");
+      }
+    }
+    mirrorChars(g, [
+      {x:4,y:2},{x:5,y:3},{x:4,y:4},{x:5,y:8},{x:4,y:9}
+    ], "m");
+    mirrorChars(g, [
+      {x:3,y:5},{x:3,y:6},{x:6,y:2},{x:6,y:9}
+    ], "f");
+    for(let x=0;x<GRID_W;x++){
+      setChar(g,x,1,"=");
+      setChar(g,x,10,"=");
+    }
+
+    setChar(g,1,1,"H");
+    setChar(g,14,10,"R");
+    setChar(g,2,2,"1");
+    setChar(g,2,4,"1");
+    setChar(g,13,9,"2");
+    setChar(g,13,7,"2");
+    setChar(g,4,5,"P");
+    setChar(g,11,6,"q");
+    setChar(g,6,5,"S");
+    setChar(g,9,6,"t");
+    mirrorChars(g, [{x:5,y:1},{x:5,y:10},{x:7,y:5}], "c");
+    setChar(g,8,6,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapFjordFront(){
+    const g = makeCharGrid(".");
+    for(let y=0;y<GRID_H;y++){
+      if(y>=3 && y<=8){
+        setChar(g,5,y,"~");
+        setChar(g,10,y,"~");
+      }
+    }
+    for(let x=2;x<=13;x++){
+      setChar(g,x,4,"=");
+      setChar(g,x,7,"=");
+    }
+    mirrorChars(g, [
+      {x:4,y:2},{x:6,y:5},{x:4,y:9}
+    ], "m");
+    mirrorChars(g, [
+      {x:3,y:3},{x:3,y:8},{x:7,y:6}
+    ], "f");
+
+    setChar(g,1,1,"H");
+    setChar(g,14,10,"R");
+    setChar(g,2,2,"1");
+    setChar(g,2,3,"1");
+    setChar(g,13,9,"2");
+    setChar(g,13,8,"2");
+    setChar(g,4,4,"P");
+    setChar(g,11,7,"q");
+    setChar(g,5,6,"S");
+    setChar(g,10,5,"t");
+    mirrorChars(g, [{x:6,y:3},{x:6,y:8},{x:8,y:6}], "c");
+    setChar(g,7,5,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
+  function generateMapArchipelagoFront(){
+    const g = makeCharGrid(".");
+    for(let y=2;y<=9;y++){
+      for(let x=0;x<GRID_W;x++){
+        if((x>=4 && x<=6) || (x>=9 && x<=11)){
+          if(y>=3 && y<=8){
+            setChar(g,x,y,"~");
+          }
+        }
+      }
+    }
+    setChar(g,4,6,".");
+    setChar(g,11,5,".");
+    for(let x=3;x<13;x++){
+      if(x!==5 && x!==10){
+        setChar(g,x,3,"=");
+        setChar(g,x,8,"=");
+      }
+    }
+    mirrorChars(g, [
+      {x:6,y:4},{x:6,y:7},{x:8,y:6}
+    ], "m");
+    mirrorChars(g, [
+      {x:2,y:5},{x:2,y:6},{x:7,y:2},{x:7,y:9}
+    ], "f");
+
+    setChar(g,1,1,"H");
+    setChar(g,14,10,"R");
+    setChar(g,2,2,"1");
+    setChar(g,2,4,"1");
+    setChar(g,13,9,"2");
+    setChar(g,13,7,"2");
+    setChar(g,4,3,"P");
+    setChar(g,11,8,"q");
+    setChar(g,5,6,"S");
+    setChar(g,10,5,"t");
+    mirrorChars(g, [{x:6,y:3},{x:6,y:8},{x:8,y:5}], "c");
+    setChar(g,7,4,"c");
+
+    generateCustomMapFromText(gridToText(g));
+  }
+
   function generateCustomMapFromText(text){
     initEmptyLayers();
     const parsed = parseCustomText(text || DEFAULT_CUSTOM_MAP);
@@ -1775,17 +2111,17 @@
     for(let y=0;y<GRID_H;y++){
       for(let x=0;x<GRID_W;x++){
         const ch = customGrid[y][x] ?? ".";
-        switch(ch){
-          case 'f': Game.terrain[y][x] = TERRAIN.FOREST; break;
-          case 'm': Game.terrain[y][x] = TERRAIN.MOUNTAIN; break;
-          case '=': Game.terrain[y][x] = TERRAIN.ROAD; break;
-          case '~': Game.terrain[y][x] = TERRAIN.WATER; break;
-          default: Game.terrain[y][x] = TERRAIN.PLAINS;
-        }
-        if("cbh12HR".includes(ch)){
-          const kind = (ch==='c') ? "CITY" : (ch==='b'||ch==='1'||ch==='2') ? "BASE" : "HQ";
-          const owner = (ch==='1'||ch==='H') ? 1 : (ch==='2'||ch==='R') ? 2 : null;
-          placeBuilding(x,y,kind,owner);
+        const tId = terrainIdFromChar(ch);
+        Game.terrain[y][x] = TERRAIN[tId] || TERRAIN.PLAINS;
+
+        const bInfo = buildingFromChar(ch);
+        if(bInfo){
+          placeBuilding(x,y,bInfo.kind,bInfo.owner);
+          if(bInfo.kind==="SHIPPORT"){
+            Game.terrain[y][x] = TERRAIN.WATER;
+          } else if(bInfo.kind==="AIRPORT"){
+            Game.terrain[y][x] = TERRAIN.PLAINS;
+          }
         }
       }
     }
@@ -1817,7 +2153,13 @@
     { id:"BASE1", char:"1", label:"Base (Blue)", color:"#21406d", layer:"terrain" },
     { id:"BASE2", char:"2", label:"Base (Red)", color:"#6d213b", layer:"terrain" },
     { id:"HQ1", char:"H", label:"HQ (Blue)", color:"#2f4a86", layer:"terrain" },
-    { id:"HQ2", char:"R", label:"HQ (Red)", color:"#8a2b2b", layer:"terrain" }
+    { id:"HQ2", char:"R", label:"HQ (Red)", color:"#8a2b2b", layer:"terrain" },
+    { id:"AIRPORT", char:"p", label:"Airport (Neutral)", color:"#2c4f78", layer:"terrain" },
+    { id:"AIRPORT1", char:"P", label:"Airport (Blue)", color:"#1f5f96", layer:"terrain" },
+    { id:"AIRPORT2", char:"q", label:"Airport (Red)", color:"#7a3153", layer:"terrain" },
+    { id:"SHIPPORT", char:"s", label:"Ship Port (Neutral)", color:"#18425a", layer:"terrain" },
+    { id:"SHIPPORT1", char:"S", label:"Ship Port (Blue)", color:"#1c6a7d", layer:"terrain" },
+    { id:"SHIPPORT2", char:"t", label:"Ship Port (Red)", color:"#7d2f46", layer:"terrain" }
   ];
 
   const CUSTOM_UNITS = [
@@ -1827,12 +2169,14 @@
     { id:"P1_MDT",  char:"D", label:"P1 Md Tank",   layer:"unit", owner:1, unit:"MDT", color:COLORS.p1Dark },
     { id:"P1_ART",  char:"E", label:"P1 Artillery", layer:"unit", owner:1, unit:"ART", color:COLORS.p1Dark },
     { id:"P1_RKT",  char:"F", label:"P1 Rockets",   layer:"unit", owner:1, unit:"RKT", color:COLORS.p1Dark },
+    { id:"P1_APC",  char:"G", label:"P1 APC",       layer:"unit", owner:1, unit:"APC", color:COLORS.p1Dark },
     { id:"P2_INF",  char:"a", label:"P2 Infantry",  layer:"unit", owner:2, unit:"INF", color:COLORS.p2Dark },
     { id:"P2_RECON",char:"b", label:"P2 Recon",     layer:"unit", owner:2, unit:"RECON", color:COLORS.p2Dark },
     { id:"P2_TANK", char:"c", label:"P2 Tank",      layer:"unit", owner:2, unit:"TANK", color:COLORS.p2Dark },
     { id:"P2_MDT",  char:"d", label:"P2 Md Tank",   layer:"unit", owner:2, unit:"MDT", color:COLORS.p2Dark },
     { id:"P2_ART",  char:"e", label:"P2 Artillery", layer:"unit", owner:2, unit:"ART", color:COLORS.p2Dark },
-    { id:"P2_RKT",  char:"f", label:"P2 Rockets",   layer:"unit", owner:2, unit:"RKT", color:COLORS.p2Dark }
+    { id:"P2_RKT",  char:"f", label:"P2 Rockets",   layer:"unit", owner:2, unit:"RKT", color:COLORS.p2Dark },
+    { id:"P2_APC",  char:"g", label:"P2 APC",       layer:"unit", owner:2, unit:"APC", color:COLORS.p2Dark }
   ];
 
   const CUSTOM_ENTRIES = [...CUSTOM_TILES, ...CUSTOM_UNITS];
@@ -1925,6 +2269,7 @@
         2: owningPlayer(2).name
       };
       data.botMode = Game.botMode;
+      data.shopCategory = Game.shopCategory;
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch(err){
       console.warn("Save failed", err);
@@ -1950,6 +2295,7 @@
       Game.winner = data.winner || null;
       Game.winReason = data.winReason || null;
       Game.botMode = data.botMode || "HUMAN";
+      Game.shopCategory = data.shopCategory || "LAND";
       Game.sel = null;
       Game.phase = "IDLE";
       Game.moveMap = null;
@@ -2017,6 +2363,8 @@
   }
 
   function terrainIdFromChar(ch){
+    if(ch==="s" || ch==="S" || ch==="t") return "WATER";
+    if("cbh12HRpPq".includes(ch)) return "PLAINS";
     if(ch==="f") return "FOREST";
     if(ch==="m") return "MOUNTAIN";
     if(ch==="=") return "ROAD";
@@ -2040,6 +2388,12 @@
     if(ch==="h") return { kind:"HQ", owner:null };
     if(ch==="H") return { kind:"HQ", owner:1 };
     if(ch==="R") return { kind:"HQ", owner:2 };
+    if(ch==="p") return { kind:"AIRPORT", owner:null };
+    if(ch==="P") return { kind:"AIRPORT", owner:1 };
+    if(ch==="q") return { kind:"AIRPORT", owner:2 };
+    if(ch==="s") return { kind:"SHIPPORT", owner:null };
+    if(ch==="S") return { kind:"SHIPPORT", owner:1 };
+    if(ch==="t") return { kind:"SHIPPORT", owner:2 };
     return null;
   }
 
@@ -2054,6 +2408,16 @@
       if(owner===1) return "H";
       if(owner===2) return "R";
       return "h";
+    }
+    if(kind==="AIRPORT"){
+      if(owner===1) return "P";
+      if(owner===2) return "q";
+      return "p";
+    }
+    if(kind==="SHIPPORT"){
+      if(owner===1) return "S";
+      if(owner===2) return "t";
+      return "s";
     }
     return null;
   }
@@ -2170,7 +2534,7 @@
       return row;
     };
 
-    const terrainRow = makeRow(CUSTOM_TILES);
+    const terrainRow = makeRow(CUSTOM_TILES.filter(t=>t.id!=="AIRPORT" && t.id!=="SHIPPORT"));
     const p1Row = makeRow(CUSTOM_UNITS.filter(u=>u.owner===1));
     const p2Row = makeRow(CUSTOM_UNITS.filter(u=>u.owner===2));
 
@@ -2216,6 +2580,15 @@
     { id:"ISLAND", name:"Island Dash", desc:"Central island brawl surrounded by water.", gen:generateMapIslandDash, img:"assets/island.png" },
     { id:"URBAN", name:"Urban Clash", desc:"Grid of roads and cities for close quarters.", gen:generateMapUrbanClash, img:"assets/urban.png" },
     { id:"BRIDGE", name:"Bridge Blitz", desc:"Two bridges with central high ground and forest flanks.", gen:generateMapBridgeBlitz, img:"assets/bridge.png" },
+    { id:"SKYRIDGE", name:"Sky Ridge", desc:"Mountain lanes, double roads, and starting airports.", gen:generateMapSkyRidge, img:"assets/mountain_map.png" },
+    { id:"CLIFF_LANDING", name:"Cliff Landing", desc:"Ridge choke points with cliffside airstrips.", gen:generateMapCliffLanding, img:"assets/frontier.png" },
+    { id:"SUMMIT_RUNWAY", name:"Summit Runway", desc:"High-altitude bowl with central runways and peaks.", gen:generateMapSummitRunway, img:"assets/mountain_map.png" },
+    { id:"HARBOR_SKIES", name:"Harbor Skies", desc:"Large inland sea with facing ports and airports.", gen:generateMapHarborSkies, img:"assets/river.png" },
+    { id:"TWIN_HARBORS", name:"Twin Harbors", desc:"Parallel bays for naval play plus paired airstrips.", gen:generateMapTwinHarbors, img:"assets/island.png" },
+    { id:"ISLAND_WINGS", name:"Island Wings", desc:"Outer seas, inner lagoon, and offset airfields.", gen:generateMapIslandWings, img:"assets/frontier.png" },
+    { id:"GRAND_ARMADA", name:"Grand Armada", desc:"Combined-arms lakes with ports, airfields, and ridges.", gen:generateMapGrandArmada, img:"assets/bridge.png" },
+    { id:"FJORD_FRONT", name:"Fjord Front", desc:"Twin fjords split the fronts; every production type is live.", gen:generateMapFjordFront, img:"assets/river.png" },
+    { id:"ARCHIPELAGO_FRONT", name:"Archipelago Front", desc:"Island clusters with runways and docks for full armies.", gen:generateMapArchipelagoFront, img:"assets/island.png" },
     { id:"CUSTOM", name:"Custom Map", desc:"Use the editor text to build your own layout.", gen:generateCustomMapFromText, img:null }
   ];
 
@@ -2944,7 +3317,17 @@
     renderCustomPalette();
     renderCustomGrid();
     renderBotButtons();
+    let mapIdx = 0;
+    const labelFor = (slot)=>{
+      if(slot>=1 && slot<=6) return "Land only";
+      if(slot>=7 && slot<=9) return "Land/Air";
+      if(slot>=10 && slot<=12) return "Land/Ship";
+      if(slot>=13 && slot<=15) return "Land/Air/Sea";
+      return "";
+    };
     for(const m of MAPS.filter(m=>m.id!=="CUSTOM")){
+      mapIdx += 1;
+      const mapLabel = labelFor(mapIdx);
       const card = document.createElement("div");
       card.className = "mapCard";
       if(m.img){
@@ -2963,7 +3346,22 @@
       name.textContent = m.name;
       const meta = document.createElement("div");
       meta.className = "meta";
-      meta.textContent = m.desc;
+      const metaText = document.createElement("div");
+      metaText.textContent = m.desc;
+      meta.appendChild(metaText);
+      if(mapLabel){
+        const badgeWrap = document.createElement("div");
+        badgeWrap.style.marginTop = "10px";
+        badgeWrap.style.padding = "6px 0 4px";
+        badgeWrap.style.display = "inline-block";
+        badgeWrap.style.lineHeight = "1.4";
+        const badge = document.createElement("span");
+        badge.className = "pill";
+        badge.style.padding = "6px 12px";
+        badge.textContent = mapLabel;
+        badgeWrap.appendChild(badge);
+        meta.appendChild(badgeWrap);
+      }
       const btnRow = document.createElement("div");
       btnRow.style.display = "flex";
       btnRow.style.gap = "8px";
@@ -3818,14 +4216,50 @@
    ***********************************************************************/
   // UPDATED: include new units; keep existing list concept
   const SHOP_UNITS = ["INF","APC","RECON","TANK","MDT","ART","RKT"];
+  const SHOP_CATEGORIES = {
+    LAND: ["INF","APC","RECON","TANK","MDT","ART","RKT"],
+    AIR: [],
+    WATER: []
+  };
+  const PRODUCTION_BUILDINGS = new Set(["BASE","AIRPORT","SHIPPORT"]);
+  const CATEGORY_LABEL = { LAND:"land", AIR:"air", WATER:"naval" };
 
-  function canBuildFromBuilding(b, playerId){
-    if(!b || b.owner!==playerId) return false;
-    if(b.kindId==="BASE") return true;
+  function unitCategory(typeId){
+    for(const [cat, ids] of Object.entries(SHOP_CATEGORIES)){
+      if(ids.includes(typeId)) return cat;
+    }
+    return null;
+  }
+
+  function allowedCategoriesForBuilding(b, playerId){
+    if(!b || b.owner!==playerId) return [];
+    if(PRODUCTION_BUILDINGS.has(b.kindId)){
+      if(b.kindId==="AIRPORT") return ["AIR"];
+      if(b.kindId==="SHIPPORT") return ["WATER"];
+      return ["LAND"];
+    }
     const co = getCOChoice(playerId);
     const state = Game.coState[playerId];
-    if(co.id==="HACHI" && state==="SUPER" && b.kindId==="CITY") return true;
-    return false;
+    if(co.id==="HACHI" && state==="SUPER" && b.kindId==="CITY") return ["LAND"];
+    return [];
+  }
+
+  function primaryCategoryForBuilding(b, playerId){
+    const cats = allowedCategoriesForBuilding(b, playerId);
+    if(cats.length) return cats[0];
+    return Game.shopCategory || "LAND";
+  }
+
+  function isUnitAllowedAtBuilding(typeId, b, playerId){
+    const cats = allowedCategoriesForBuilding(b, playerId);
+    if(!cats.length) return false;
+    const cat = unitCategory(typeId);
+    if(!cat) return false;
+    return cats.includes(cat);
+  }
+
+  function canBuildFromBuilding(b, playerId){
+    return allowedCategoriesForBuilding(b, playerId).length>0;
   }
 
   function getUnitCost(def, playerId){
@@ -3845,6 +4279,7 @@
     const b = Game.sel.building;
     if(!canBuildFromBuilding(b, Game.currentPlayer)) return;
 
+    Game.shopCategory = primaryCategoryForBuilding(b, Game.currentPlayer);
     Game.phase = "SHOP";
     shopBox.style.display = "block";
     renderShop();
@@ -3866,111 +4301,155 @@
     const validSel = Game.sel && Game.sel.type==="building" && canBuildFromBuilding(Game.sel.building, Game.currentPlayer);
     const baseX = validSel ? Game.sel.x : -1;
     const baseY = validSel ? Game.sel.y : -1;
+    const allowedCats = validSel ? allowedCategoriesForBuilding(Game.sel.building, Game.currentPlayer) : [];
+    const buildingLabel = validSel ? Game.sel.building.def.name : "Base";
+
+    if(validSel && allowedCats.length && !allowedCats.includes(Game.shopCategory)){
+      Game.shopCategory = allowedCats[0];
+    }
 
     if(!validSel){
-      shopHint.textContent = "Select your owned Base to build." + (getCOChoice(Game.currentPlayer).id==="HACHI" && Game.coState[Game.currentPlayer]==="SUPER" ? " (Cities allowed with Hachi Super)" : "");
+      shopHint.textContent = "Select your owned production building to build." + (getCOChoice(Game.currentPlayer).id==="HACHI" && Game.coState[Game.currentPlayer]==="SUPER" ? " (Cities allowed with Hachi Super)" : "");
+    } else if(!allowedCats.length){
+      shopHint.textContent = `${buildingLabel} cannot produce units right now.`;
     } else if(unitAt(baseX, baseY)){
-      shopHint.textContent = "Base is occupied; move the unit off to build.";
+      shopHint.textContent = `${buildingLabel} is occupied; move the unit off to build.`;
     } else {
-      shopHint.textContent = "Build units on your base" + (Game.sel.building.kindId==="CITY" ? " (Hachi Super)" : "") + " (tile must be empty).";
+      const catText = allowedCats.map(c=>CATEGORY_LABEL[c] || c.toLowerCase()).join(" / ");
+      shopHint.textContent = `Build ${catText} units on your ${buildingLabel}${Game.sel.building.kindId==="CITY" ? " (Hachi Super)" : ""} (tile must be empty).`;
     }
 
-    for(const id of SHOP_UNITS){
-      const def = UNIT_DEF[id];
-      const price = getUnitCost(def, Game.currentPlayer);
-      const canAfford = funds >= price;
-      const occupied = validSel && unitAt(baseX, baseY) !== null;
-
-      const div = document.createElement("div");
-      div.className = "shopItem";
-
-      const left = document.createElement("div");
-      left.style.display = "grid";
-      left.style.gridTemplateColumns = "64px 1fr";
-      left.style.gap = "10px";
-      const sprite = makeSpriteNode(id, Game.currentPlayer, 64);
-      left.appendChild(sprite);
-
-      const info = document.createElement("div");
-      const role = def.indirect ? "Indirect fire" : "Direct fire";
-      const rangeLabel = formatRangeText(def.rangeMin, def.rangeMax);
-      info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>`;
-      const statRow = document.createElement("div");
-      statRow.className = "shopStats";
-      statRow.style.marginTop = "8px";
-      const dmgPill = document.createElement("span");
-      dmgPill.className = "pill warn";
-      dmgPill.style.cursor = "pointer";
-      const setDmgText = ()=>{ dmgPill.textContent = damageDisplayText(def.id); };
-      setDmgText();
-      dmgPill.title = "Click to toggle detailed damage view";
-      dmgPill.addEventListener("click", ()=>{
-        Game.dmgDetail = !Game.dmgDetail;
-        renderShop();
-      });
-      statRow.appendChild(dmgPill);
-
-      const capPill = document.createElement("span");
-      capPill.className = "pill " + (def.canCapture ? "good" : "");
-      capPill.textContent = def.canCapture ? "Can capture" : "No capture";
-      statRow.appendChild(capPill);
-
-      const blurb = UNIT_BLURB[def.id];
-      if(blurb){
-        const desc = document.createElement("div");
-        desc.className = "meta";
-        desc.textContent = blurb;
-        desc.style.marginBottom = "6px";
-        info.appendChild(desc);
-      }
-
-      const moveRow = document.createElement("div");
-      moveRow.className = "shopStats";
-      moveRow.style.marginTop = "6px";
-      const movePill = document.createElement("span");
-      movePill.className = "pill good";
-      movePill.textContent = `Move ${def.move} (${def.movementType})`;
-      const rangePill = document.createElement("span");
-      rangePill.className = "pill";
-      rangePill.style.background = "#152252";
-      rangePill.textContent = `Range ${rangeLabel}`;
-      const rolePill = document.createElement("span");
-      rolePill.className = "pill warn";
-      rolePill.textContent = role;
-      moveRow.appendChild(movePill);
-      moveRow.appendChild(rangePill);
-      moveRow.appendChild(rolePill);
-
-      info.appendChild(statRow);
-      info.appendChild(moveRow);
-      left.appendChild(info);
-      div.appendChild(left);
-
-      const right = document.createElement("div");
-      right.style.display = "flex";
-      right.style.flexDirection = "column";
-      right.style.alignItems = "flex-end";
-      right.style.gap = "6px";
-      const pill = document.createElement("span");
-      pill.className = "pill " + (canAfford ? "good" : "bad");
-      pill.textContent = canAfford ? "Affordable" : "Too expensive";
-      right.appendChild(pill);
-
+    // category buttons
+    const catRow = document.createElement("div");
+    catRow.className = "row";
+    catRow.style.justifyContent = "center";
+    catRow.style.flexWrap = "wrap";
+    catRow.style.gap = "6px";
+    const makeCatBtn = (cat, label)=>{
       const btn = document.createElement("button");
-      btn.className = "btn good";
-      btn.style.marginLeft = "0";
-      btn.textContent = `$${price}`;
-      btn.disabled = (!canAfford) || occupied || !validSel;
-
+      btn.className = "btn" + (Game.shopCategory===cat ? " primary" : "");
+      btn.textContent = label;
+      btn.disabled = validSel && allowedCats.length>0 && !allowedCats.includes(cat);
       btn.addEventListener("click", ()=>{
-        buildUnitAtBase(id, baseX, baseY);
+        if(!btn.disabled){
+          Game.shopCategory = cat;
+          renderShop();
+        }
       });
+      return btn;
+    };
+    catRow.appendChild(makeCatBtn("LAND","Land"));
+    catRow.appendChild(makeCatBtn("AIR","Air"));
+    catRow.appendChild(makeCatBtn("WATER","Water"));
+    shopList.appendChild(catRow);
 
-      right.appendChild(btn);
-      div.appendChild(right);
-
-      shopList.appendChild(div);
+    const ids = SHOP_CATEGORIES[Game.shopCategory] || [];
+    if(!ids.length){
+      const empty = document.createElement("div");
+      empty.className = "meta";
+      empty.style.textAlign = "center";
+      empty.style.marginTop = "10px";
+      empty.textContent = "No units available in this category yet.";
+      shopList.appendChild(empty);
     }
+    for(const id of ids){
+        const def = UNIT_DEF[id];
+        if(!def) continue;
+        const price = getUnitCost(def, Game.currentPlayer);
+        const canAfford = funds >= price;
+        const occupied = validSel && unitAt(baseX, baseY) !== null;
+        const allowedHere = validSel ? isUnitAllowedAtBuilding(id, Game.sel.building, Game.currentPlayer) : false;
+
+        const div = document.createElement("div");
+        div.className = "shopItem";
+
+        const left = document.createElement("div");
+        left.style.display = "grid";
+        left.style.gridTemplateColumns = "64px 1fr";
+        left.style.gap = "10px";
+        const sprite = makeSpriteNode(id, Game.currentPlayer, 64);
+        left.appendChild(sprite);
+
+        const info = document.createElement("div");
+        const role = def.indirect ? "Indirect fire" : (def.canAttack===false ? "No attack" : "Direct fire");
+        const rangeLabel = formatRangeText(def.rangeMin, def.rangeMax);
+        info.innerHTML = `<div class="name">${def.name} <span class="abbr">${def.abbr}</span></div>`;
+        const statRow = document.createElement("div");
+        statRow.className = "shopStats";
+        statRow.style.marginTop = "8px";
+        const dmgPill = document.createElement("span");
+        dmgPill.className = "pill warn";
+        dmgPill.style.cursor = "pointer";
+        const setDmgText = ()=>{ dmgPill.textContent = damageDisplayText(def.id); };
+        setDmgText();
+        dmgPill.title = "Click to toggle detailed damage view";
+        dmgPill.addEventListener("click", ()=>{
+          Game.dmgDetail = !Game.dmgDetail;
+          renderShop();
+        });
+        statRow.appendChild(dmgPill);
+
+        const capPill = document.createElement("span");
+        capPill.className = "pill " + (def.canCapture ? "good" : "");
+        capPill.textContent = def.canCapture ? "Can capture" : "No capture";
+        statRow.appendChild(capPill);
+
+        const blurb = UNIT_BLURB[def.id];
+        if(blurb){
+          const desc = document.createElement("div");
+          desc.className = "meta";
+          desc.textContent = blurb;
+          desc.style.marginBottom = "6px";
+          info.appendChild(desc);
+        }
+
+        const moveRow = document.createElement("div");
+        moveRow.className = "shopStats";
+        moveRow.style.marginTop = "6px";
+        const movePill = document.createElement("span");
+        movePill.className = "pill good";
+        movePill.textContent = `Move ${def.move} (${def.movementType})`;
+        const rangePill = document.createElement("span");
+        rangePill.className = "pill";
+        rangePill.style.background = "#152252";
+        rangePill.textContent = `Range ${rangeLabel}`;
+        const rolePill = document.createElement("span");
+        rolePill.className = "pill warn";
+        rolePill.textContent = role;
+        moveRow.appendChild(movePill);
+        moveRow.appendChild(rangePill);
+        moveRow.appendChild(rolePill);
+
+        info.appendChild(statRow);
+        info.appendChild(moveRow);
+        left.appendChild(info);
+        div.appendChild(left);
+
+        const right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.flexDirection = "column";
+        right.style.alignItems = "flex-end";
+        right.style.gap = "6px";
+        const pill = document.createElement("span");
+        pill.className = "pill " + (canAfford ? "good" : "bad");
+        pill.textContent = canAfford ? "Affordable" : "Too expensive";
+        right.appendChild(pill);
+
+        const btn = document.createElement("button");
+        btn.className = "btn good";
+        btn.style.marginLeft = "0";
+        btn.textContent = `$${price}`;
+        btn.disabled = (!canAfford) || occupied || !validSel || !allowedHere;
+
+        btn.addEventListener("click", ()=>{
+          buildUnitAtBase(id, baseX, baseY);
+        });
+
+        right.appendChild(btn);
+        div.appendChild(right);
+
+        shopList.appendChild(div);
+      }
   }
 
   function buildUnitAtBase(typeId, x, y){
@@ -3980,11 +4459,19 @@
     if(!b || !canBuildFromBuilding(b, Game.currentPlayer)) return;
 
     if(unitAt(x,y)){
-      logLine("Cannot build: base tile occupied.", Game.currentPlayer);
+      logLine("Cannot build: production tile occupied.", Game.currentPlayer);
       return;
     }
 
     const def = UNIT_DEF[typeId];
+    if(!def){
+      logLine("Cannot build: unknown unit type.", Game.currentPlayer);
+      return;
+    }
+    if(!isUnitAllowedAtBuilding(typeId, b, Game.currentPlayer)){
+      logLine("Cannot build: that unit type cannot deploy from this building.", Game.currentPlayer);
+      return;
+    }
     const price = getUnitCost(def, Game.currentPlayer);
     if(Game.funds[Game.currentPlayer] < price){
       logLine("Cannot build: insufficient funds.", Game.currentPlayer);
@@ -4254,7 +4741,7 @@
         selectBuilding(choice.b, choice.x, choice.y);
         openShopIfOnOwnedBase();
       } else {
-        logLine("No owned Base available to open shop.", Game.currentPlayer);
+        logLine("No owned production building available to open shop.", Game.currentPlayer);
       }
     } else if(e.key==="k" || e.key==="K"){
       toggleKey();
@@ -4857,7 +5344,7 @@
     const g = canvasToGrid(e.clientX, e.clientY);
     if(!inBounds(g.x,g.y)) return;
     const b = buildingAt(g.x,g.y);
-    if(b && b.kindId==="BASE" && b.owner===Game.currentPlayer){
+    if(b && b.owner===Game.currentPlayer && canBuildFromBuilding(b, Game.currentPlayer)){
       selectBuilding(b, g.x, g.y);
       openShopIfOnOwnedBase();
       updateUI();
