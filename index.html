@@ -2027,21 +2027,21 @@
 
   function generateMapFjordFront(){
     const g = makeCharGrid(".");
-    for(let y=0;y<GRID_H;y++){
-      if(y>=3 && y<=8){
-        setChar(g,5,y,"~");
-        setChar(g,10,y,"~");
+    // Wide central fjord; only tiny crossings
+    for(let y=1;y<GRID_H-1;y++){
+      for(let x=4;x<=11;x++){
+        setChar(g,x,y,"~");
       }
     }
-    for(let x=2;x<=13;x++){
-      setChar(g,x,4,"=");
-      setChar(g,x,7,"=");
-    }
+    // Staggered bridges to keep naval focus
+    setChar(g,7,3,"=");
+    setChar(g,8,8,"=");
+
     mirrorChars(g, [
-      {x:4,y:2},{x:6,y:5},{x:4,y:9}
+      {x:3,y:2},{x:3,y:9}
     ], "m");
     mirrorChars(g, [
-      {x:3,y:3},{x:3,y:8},{x:7,y:6}
+      {x:2,y:3},{x:2,y:8}
     ], "f");
 
     setChar(g,1,1,"H");
@@ -2054,7 +2054,7 @@
     setChar(g,11,7,"q");
     setChar(g,5,6,"S");
     setChar(g,10,5,"t");
-    mirrorChars(g, [{x:6,y:3},{x:6,y:8},{x:8,y:6}], "c");
+    mirrorChars(g, [{x:3,y:6},{x:5,y:2},{x:5,y:9}], "c");
     setChar(g,7,5,"c");
 
     generateCustomMapFromText(gridToText(g));
@@ -2062,28 +2062,19 @@
 
   function generateMapArchipelagoFront(){
     const g = makeCharGrid(".");
-    for(let y=2;y<=9;y++){
-      for(let x=0;x<GRID_W;x++){
-        if((x>=4 && x<=6) || (x>=9 && x<=11)){
-          if(y>=3 && y<=8){
-            setChar(g,x,y,"~");
-          }
-        }
+    // Broad middle sea; minimal land crossovers
+    for(let y=1;y<GRID_H-1;y++){
+      for(let x=3;x<=12;x++){
+        setChar(g,x,y,"~");
       }
     }
-    setChar(g,4,6,".");
-    setChar(g,11,5,".");
-    for(let x=3;x<13;x++){
-      if(x!==5 && x!==10){
-        setChar(g,x,3,"=");
-        setChar(g,x,8,"=");
-      }
-    }
+    setChar(g,7,5,"=");
+    setChar(g,8,6,"=");
     mirrorChars(g, [
-      {x:6,y:4},{x:6,y:7},{x:8,y:6}
+      {x:2,y:3},{x:2,y:8}
     ], "m");
     mirrorChars(g, [
-      {x:2,y:5},{x:2,y:6},{x:7,y:2},{x:7,y:9}
+      {x:1,y:4},{x:1,y:7}
     ], "f");
 
     setChar(g,1,1,"H");
@@ -2092,12 +2083,13 @@
     setChar(g,2,4,"1");
     setChar(g,13,9,"2");
     setChar(g,13,7,"2");
-    setChar(g,4,3,"P");
-    setChar(g,11,8,"q");
-    setChar(g,5,6,"S");
-    setChar(g,10,5,"t");
-    mirrorChars(g, [{x:6,y:3},{x:6,y:8},{x:8,y:5}], "c");
-    setChar(g,7,4,"c");
+    setChar(g,3,2,"P");
+    setChar(g,12,9,"q");
+    setChar(g,4,6,"S");
+    setChar(g,11,5,"t");
+    mirrorChars(g, [{x:2,y:6},{x:3,y:2},{x:3,y:9}], "c");
+    setChar(g,7,1,"c");
+    setChar(g,8,10,"c");
 
     generateCustomMapFromText(gridToText(g));
   }
@@ -2580,15 +2572,15 @@
     { id:"ISLAND", name:"Island Dash", desc:"Central island brawl surrounded by water.", gen:generateMapIslandDash, img:"assets/island.png" },
     { id:"URBAN", name:"Urban Clash", desc:"Grid of roads and cities for close quarters.", gen:generateMapUrbanClash, img:"assets/urban.png" },
     { id:"BRIDGE", name:"Bridge Blitz", desc:"Two bridges with central high ground and forest flanks.", gen:generateMapBridgeBlitz, img:"assets/bridge.png" },
-    { id:"SKYRIDGE", name:"Sky Ridge", desc:"Mountain lanes, double roads, and starting airports.", gen:generateMapSkyRidge, img:"assets/mountain_map.png" },
-    { id:"CLIFF_LANDING", name:"Cliff Landing", desc:"Ridge choke points with cliffside airstrips.", gen:generateMapCliffLanding, img:"assets/frontier.png" },
-    { id:"SUMMIT_RUNWAY", name:"Summit Runway", desc:"High-altitude bowl with central runways and peaks.", gen:generateMapSummitRunway, img:"assets/mountain_map.png" },
-    { id:"HARBOR_SKIES", name:"Harbor Skies", desc:"Large inland sea with facing ports and airports.", gen:generateMapHarborSkies, img:"assets/river.png" },
-    { id:"TWIN_HARBORS", name:"Twin Harbors", desc:"Parallel bays for naval play plus paired airstrips.", gen:generateMapTwinHarbors, img:"assets/island.png" },
-    { id:"ISLAND_WINGS", name:"Island Wings", desc:"Outer seas, inner lagoon, and offset airfields.", gen:generateMapIslandWings, img:"assets/frontier.png" },
-    { id:"GRAND_ARMADA", name:"Grand Armada", desc:"Combined-arms lakes with ports, airfields, and ridges.", gen:generateMapGrandArmada, img:"assets/bridge.png" },
-    { id:"FJORD_FRONT", name:"Fjord Front", desc:"Twin fjords split the fronts; every production type is live.", gen:generateMapFjordFront, img:"assets/river.png" },
-    { id:"ARCHIPELAGO_FRONT", name:"Archipelago Front", desc:"Island clusters with runways and docks for full armies.", gen:generateMapArchipelagoFront, img:"assets/island.png" },
+    { id:"SKYRIDGE", name:"Sky Ridge", desc:"Mountain lanes, double roads, and starting airports.", gen:generateMapSkyRidge, img:"assets/sky_ridge.png" },
+    { id:"CLIFF_LANDING", name:"Cliff Landing", desc:"Ridge choke points with cliffside airstrips.", gen:generateMapCliffLanding, img:"assets/cliff.png" },
+    { id:"SUMMIT_RUNWAY", name:"Summit Runway", desc:"High-altitude bowl with central runways and peaks.", gen:generateMapSummitRunway, img:"assets/summit.png" },
+    { id:"HARBOR_SKIES", name:"Harbor Skies", desc:"Large inland sea with facing ports and airports.", gen:generateMapHarborSkies, img:"assets/harbor.png" },
+    { id:"TWIN_HARBORS", name:"Twin Harbors", desc:"Parallel bays for naval play plus paired airstrips.", gen:generateMapTwinHarbors, img:"assets/twin.png" },
+    { id:"ISLAND_WINGS", name:"Island Wings", desc:"Outer seas, inner lagoon, and offset airfields.", gen:generateMapIslandWings, img:"assets/island_wings.png" },
+    { id:"GRAND_ARMADA", name:"Grand Armada", desc:"Combined-arms lakes with ports, airfields, and ridges.", gen:generateMapGrandArmada, img:"assets/grand_a.png" },
+    { id:"FJORD_FRONT", name:"Fjord Front", desc:"Twin fjords split the fronts; every production type is live.", gen:generateMapFjordFront, img:"assets/fjord.png" },
+    { id:"ARCHIPELAGO_FRONT", name:"Archipelago Front", desc:"Island clusters with runways and docks for full armies.", gen:generateMapArchipelagoFront, img:"assets/arch_front.png" },
     { id:"CUSTOM", name:"Custom Map", desc:"Use the editor text to build your own layout.", gen:generateCustomMapFromText, img:null }
   ];
 
