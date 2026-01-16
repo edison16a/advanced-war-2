@@ -84,6 +84,23 @@
     .pill.good{border-color:#2bd37e;color:#a9ffd1}
     .pill.warn{border-color:#ffd166;color:#ffe7a8}
     .pill.bad{border-color:#ff5d7a;color:#ffc1cd}
+    .inputRow{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+    .numInput{
+      background:#0b1433;border:1px solid #23346b;color:var(--text);
+      border-radius:10px;padding:6px 10px;min-width:96px;box-sizing:border-box;
+    }
+    .numInput:focus{outline:1px solid var(--accent);}
+    .mapSettingsBox{
+      display:none;
+      width:100%;
+      background:#0b1433;
+      border:1px solid #23346b;
+      border-radius:12px;
+      padding:10px;
+      box-sizing:border-box;
+      gap:8px;
+      flex-direction:column;
+    }
     /* NEW: Key/Legend panel */
     #keyBox{
       display:none;
@@ -663,6 +680,20 @@
           <button class="btn" id="botMedBtn" title="vs Bot (Medium)">Bot Med</button>
           <button class="btn" id="botHardBtn" title="vs Bot (Hard)">Bot Hard</button>
         </div>
+        <button class="btn" id="mapSettingsBtn" style="width:100%;text-align:center;">Settings</button>
+        <div class="mapSettingsBox" id="mapSettingsBox">
+          <div class="muted" style="font-size:12px;margin-bottom:6px">Starting funds apply on New Game; city income updates immediately.</div>
+          <div class="inputRow" style="justify-content:center">
+            <label class="muted" for="startFundsInput">Starting funds</label>
+            <input class="numInput" id="startFundsInput" type="number" min="0" step="500" value="5000" />
+            <label class="muted" for="cityIncomeInput">Income per city</label>
+            <input class="numInput" id="cityIncomeInput" type="number" min="0" step="100" value="1000" />
+          </div>
+          <div class="inputRow" style="justify-content:center">
+            <label class="muted" for="defaultIncomeInput">Extra income/round</label>
+            <input class="numInput" id="defaultIncomeInput" type="number" min="0" step="100" value="0" />
+          </div>
+        </div>
         <button class="btn" id="closeMapModal" style="width:100%;text-align:center;">Close</button>
       </div>
       <div class="mapGrid" id="mapList"></div>
@@ -1131,11 +1162,11 @@
     APC: "Transports one infantry; unarmed but fast on treads; left-click to load, right-click to unload",
     CRU: "Escort cruiser that hunts subs and swats air; best at sinking stealthy subs.",
     SUB: "Stealth assassin of the seas; primary counter to Battleships and Landers.",
-    LND: "Non-combat transport that ferries two land units across the sea; unload only onto land tiles.",
+    LND: "Non-combat transport that ferries two land units across the sea; Right-click to unload only onto land tiles.",
     BSH: "Indirect naval artillery; bombards sea and land from long range.",
     FTR: "Elite interceptor; dominates other air units (especially bombers).",
     BC: "Defensive battle copter that trades blows with other copters.",
-    TC: "Unarmed transport copter; carries one infantry over any terrain.",
+    TC: "Unarmed transport copter; carries one infantry over any terrain. Right-click to unload",
     BMB: "Heavy bomber that crushes land and naval targets; vulnerable to fighters."
   };
 
@@ -1258,6 +1289,11 @@
   const dmgBtn = document.getElementById("dmgBtn");
   const rangeBtn = document.getElementById("rangeBtn");
   const atkInfoBtn = document.getElementById("atkInfoBtn");
+  const startFundsInput = document.getElementById("startFundsInput");
+  const cityIncomeInput = document.getElementById("cityIncomeInput");
+  const defaultIncomeInput = document.getElementById("defaultIncomeInput");
+  const mapSettingsBtn = document.getElementById("mapSettingsBtn");
+  const mapSettingsBox = document.getElementById("mapSettingsBox");
 
   const elSelHint = document.getElementById("selHint");
   const elSelKv = document.getElementById("selKv");
@@ -1350,6 +1386,9 @@
     day: 1,
     currentPlayer: 1,
     funds: { 1: 5000, 2: 5000 },
+    startFunds: 5000,
+    cityIncome: 1000,
+    baseIncome: 0,
 
     terrain: [],
     buildings: [],
@@ -2463,6 +2502,9 @@
         coChoice: Game.coChoice,
         coMeter: Game.coMeter,
         coState: Game.coState,
+        startFunds: Game.startFunds,
+        cityIncome: Game.cityIncome,
+        baseIncome: Game.baseIncome,
         selectedMap: Game.selectedMap,
         customMapText: Game.customMapText,
         baseCycleIdx: Game.baseCycleIdx,
@@ -2482,6 +2524,25 @@
     }
   }
 
+  function syncIncomeInputs(){
+    if(startFundsInput) startFundsInput.value = Game.startFunds ?? 5000;
+    if(cityIncomeInput) cityIncomeInput.value = Game.cityIncome ?? 1000;
+    if(defaultIncomeInput) defaultIncomeInput.value = Game.baseIncome ?? 0;
+  }
+
+  function applyIncomeInputs(){
+    const parseVal = (el, fallback)=>{
+      const n = parseInt(el ? el.value : "", 10);
+      const val = Number.isFinite(n) ? Math.max(0, n) : fallback;
+      if(el) el.value = val;
+      return val;
+    };
+    Game.startFunds = parseVal(startFundsInput, Game.startFunds ?? 5000);
+    Game.cityIncome = parseVal(cityIncomeInput, Game.cityIncome ?? 1000);
+    Game.baseIncome = parseVal(defaultIncomeInput, Game.baseIncome ?? 0);
+    saveGameState();
+  }
+
   function loadGameState(){
     try{
       const raw = localStorage.getItem(SAVE_KEY);
@@ -2491,6 +2552,9 @@
       Game.day = data.day || 1;
       Game.currentPlayer = data.currentPlayer || 1;
       Game.funds = data.funds || {1:5000,2:5000};
+      Game.startFunds = Number.isFinite(data.startFunds) ? data.startFunds : 5000;
+      Game.cityIncome = Number.isFinite(data.cityIncome) ? data.cityIncome : 1000;
+      Game.baseIncome = Number.isFinite(data.baseIncome) ? data.baseIncome : 0;
       Game.coChoice = data.coChoice || {1:"ANDY",2:"ANDY"};
       Game.coMeter = data.coMeter || {1:0,2:0};
       Game.coState = data.coState || {1:null,2:null};
@@ -2566,6 +2630,7 @@
         if(data.playerNames[2]) setPlayerName(2, data.playerNames[2], true);
       }
       renderBotButtons();
+      syncIncomeInputs();
       updateUI();
       return true;
     } catch(err){
@@ -2899,7 +2964,7 @@
   function freshMatch(){
     Game.day = 1;
     Game.currentPlayer = 1;
-    Game.funds = { 1: 5000, 2: 5000 };
+    Game.funds = { 1: Game.startFunds, 2: Game.startFunds };
     Game.units = [];
     Game.sel = null;
     Game.phase = "IDLE";
@@ -2999,13 +3064,20 @@
   /***********************************************************************
    * Income & Turn Progression
    ***********************************************************************/
+  function buildingIncome(b){
+    if(!b || !b.def) return 0;
+    const cityIncome = Number.isFinite(Game.cityIncome) ? Game.cityIncome : b.def.income;
+    if(b.kindId==="CITY") return Math.max(0, cityIncome);
+    return b.def.income;
+  }
+
   function countOwnedIncome(playerId){
-    let total = 0;
+    let total = Number.isFinite(Game.baseIncome) ? Game.baseIncome : 0;
     for(let y=0;y<GRID_H;y++){
       for(let x=0;x<GRID_W;x++){
         const b = buildingAt(x,y);
         if(b && b.owner===playerId){
-          total += b.def.income;
+          total += buildingIncome(b);
         }
       }
     }
@@ -3650,6 +3722,8 @@
 
   function openMapPicker(){
     renderMapPicker();
+    closeMapSettings();
+    syncIncomeInputs();
     if(mapModal) mapModal.style.display = "flex";
   }
 
@@ -3673,7 +3747,19 @@
   }
 
   function closeMapPicker(){
+    closeMapSettings();
     if(mapModal) mapModal.style.display = "none";
+  }
+  function closeMapSettings(){
+    if(mapSettingsBox) mapSettingsBox.style.display = "none";
+    if(mapSettingsBtn) mapSettingsBtn.classList.remove("primary");
+  }
+  function toggleMapSettings(){
+    if(!mapSettingsBox) return;
+    const show = mapSettingsBox.style.display !== "flex";
+    mapSettingsBox.style.display = show ? "flex" : "none";
+    if(mapSettingsBtn) mapSettingsBtn.classList.toggle("primary", show);
+    if(show) syncIncomeInputs();
   }
 
   function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax, leftText="", rightText="" }){
@@ -3994,14 +4080,14 @@
     if(!u || !u.def.transport) return true;
     return cargoCount(u) >= transportCapacity(u);
   }
-  function isLandUnit(u){ return !isSeaUnit(u); }
+  function isLandUnit(u){ return !isSeaUnit(u) && !isAirUnit(u); }
   function canLandAttackSea(attacker){ return attacker.def.id==="ART" || attacker.def.id==="RKT"; }
   function canTarget(attacker, target){
     if(!attacker || !target) return false;
     const atkSea = isSeaUnit(attacker);
     const defSea = isSeaUnit(target);
-    const atkAir = attacker.def.movementType==="air";
-    const defAir = target.def.movementType==="air";
+    const atkAir = isAirUnit(attacker);
+    const defAir = isAirUnit(target);
 
     if(atkSea){
       if(attacker.def.id==="BSH"){
@@ -4020,6 +4106,7 @@
     }
 
     // Land attackers
+    if(defAir) return false; // land units cannot hit air
     if(defSea){
       return canLandAttackSea(attacker) && (target.def.id==="BSH" || target.def.id==="SUB" || target.def.id==="CRU" || target.def.id==="LND");
     }
@@ -4610,15 +4697,17 @@
     return allowedCategoriesForBuilding(b, playerId).length>0;
   }
 
-  function getUnitCost(def, playerId){
+  function hachiCostMultiplier(playerId){
     const co = getCOChoice(playerId);
+    if(!co || co.id!=="HACHI") return 1;
     const state = Game.coState[playerId];
-    let cost = def.cost;
-    if(co.id==="HACHI"){
-      if(state==="POWER" || state==="SUPER") cost = Math.floor(cost * 0.5);
-      else cost = Math.floor(cost * 0.9);
-    }
-    return cost;
+    if(state==="POWER" || state==="SUPER") return 0.5;
+    return 0.9; // day-to-day passive
+  }
+
+  function getUnitCost(def, playerId){
+    const mult = hachiCostMultiplier(playerId);
+    return Math.floor(def.cost * mult);
   }
 
   function openShopIfOnOwnedBase(){
@@ -5091,7 +5180,17 @@
     if(e.key==="e" || e.key==="E"){
       endTurn();
     } else if(e.key==="b" || e.key==="B"){
-      const choice = pickNextBase(Game.currentPlayer);
+      let choice = null;
+      const g = Game.hovered;
+      if(g && inBounds(g.x,g.y)){
+        const hb = buildingAt(g.x,g.y);
+        if(hb && hb.owner===Game.currentPlayer && PRODUCTION_BUILDINGS.has(hb.kindId)){
+          choice = { b: hb, x: g.x, y: g.y };
+        }
+      }
+      if(!choice){
+        choice = pickNextBase(Game.currentPlayer);
+      }
       if(choice){
         selectBuilding(choice.b, choice.x, choice.y);
         openShopIfOnOwnedBase();
@@ -5272,6 +5371,18 @@
   if(p2TopSuper) p2TopSuper.addEventListener("click", ()=>useCOPower(2,"SUPER"));
   if(closeCoModal) closeCoModal.addEventListener("click", closeCOModal);
   if(coModal) coModal.addEventListener("click", (e)=>{ if(e.target===coModal) closeCOModal(); });
+  if(mapSettingsBtn) mapSettingsBtn.addEventListener("click", toggleMapSettings);
+  if(startFundsInput) startFundsInput.addEventListener("change", ()=>{
+    applyIncomeInputs();
+  });
+  if(cityIncomeInput) cityIncomeInput.addEventListener("change", ()=>{
+    applyIncomeInputs();
+    updateUI();
+  });
+  if(defaultIncomeInput) defaultIncomeInput.addEventListener("change", ()=>{
+    applyIncomeInputs();
+    updateUI();
+  });
 
   /***********************************************************************
    * UI Updates
@@ -5760,6 +5871,7 @@ function hashInt(x, y, seed, mod) {
   if(!loadGameState()){
     hardReset();
   }
+  syncIncomeInputs();
   requestAnimationFrame(draw);
 
   </script>
