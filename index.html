@@ -368,6 +368,41 @@
       user-select:none;
     }
     .customActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    #damagePreview{
+      position:fixed;
+      padding:14px 16px;
+      background:#0b1433;
+      border:1px solid #4a67d6;
+      border-radius:10px;
+      color:#e8eeff;
+      font-size:16px;
+      pointer-events:none;
+      z-index:8000;
+      display:none;
+      box-shadow:0 10px 24px rgba(0,0,0,0.45);
+      white-space:nowrap;
+      text-align:center;
+    }
+    .previewIcon{
+      height:26px;
+      width:auto;
+      vertical-align:middle;
+      margin-right:10px;
+      image-rendering:pixelated;
+    }
+    .previewHeader{
+      font-weight:800;
+      margin-bottom:10px;
+      text-align:center;
+      font-size:18px;
+    }
+    .previewRow{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      margin-bottom:6px;
+    }
     .editableName{
       position:relative;
       cursor:pointer;
@@ -518,6 +553,7 @@
         <button class="btn" id="moveBtn" title="Hold to show move range (M)">Move Range (M)</button>
         <button class="btn" id="dmgBtn" title="Hold to show attack range (D)">Damage Range (D)</button>
         <button class="btn" id="rangeBtn" title="Hold to show move+attack (S)">All Range (S)</button>
+        <button class="btn" id="atkInfoBtn" title="Attack info overlay (Q)">Attack Info (Q)</button>
         <button class="btn" id="keyBtn" title="Open unit/terrain legend">Key (K)</button>
         <button class="btn" id="unselectBtn" title="Clear selection / close panels">Unselect/Escape (ESC)</button>
       </div>
@@ -648,6 +684,7 @@
       <div class="turnIncome" id="turnOverlayIncome">Income +0</div>
     </div>
   </div>
+  <div id="damagePreview"></div>
 
   <script>
   "use strict";
@@ -1004,6 +1041,7 @@
   const moveBtn = document.getElementById("moveBtn");
   const dmgBtn = document.getElementById("dmgBtn");
   const rangeBtn = document.getElementById("rangeBtn");
+  const atkInfoBtn = document.getElementById("atkInfoBtn");
 
   const elSelHint = document.getElementById("selHint");
   const elSelKv = document.getElementById("selKv");
@@ -1048,6 +1086,7 @@
   const closeMapModal = document.getElementById("closeMapModal");
   const customPalette = document.getElementById("customPalette");
   const customGridEl = document.getElementById("customGrid");
+  const damagePreviewEl = document.getElementById("damagePreview");
   const fillPlainsBtn = document.getElementById("fillPlains");
   const resetCustomBtn = document.getElementById("resetCustom");
 
@@ -1058,6 +1097,7 @@
   let mKeyHeld = false, mBtnHeld = false;
   const SAVE_KEY = "aw2_save_v1";
   let nameEditActive = false;
+  let qKeyHeld = false;
 
   const shopBox = document.getElementById("shopBox");
   const shopList = document.getElementById("shopList");
@@ -1679,6 +1719,10 @@
         winner: Game.winner,
         winReason: Game.winReason
       };
+      data.playerNames = {
+        1: owningPlayer(1).name,
+        2: owningPlayer(2).name
+      };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch(err){
       console.warn("Save failed", err);
@@ -1736,6 +1780,10 @@
           nu.spriteIdx = u.spriteIdx ?? 0;
           Game.units.push(nu);
         }
+      }
+      if(data.playerNames){
+        if(data.playerNames[1]) setPlayerName(1, data.playerNames[1], true);
+        if(data.playerNames[2]) setPlayerName(2, data.playerNames[2], true);
       }
       updateUI();
       return true;
@@ -2184,6 +2232,7 @@
     elSelHint.textContent = "Click a unit, building, or tile.";
     elSelKv.innerHTML = "";
     elSelStats.innerHTML = "";
+    if(damagePreviewEl) damagePreviewEl.style.display = "none";
   }
 
   function selectUnit(u){
@@ -2196,6 +2245,7 @@
     if(canAttackThisTurn(u)){
       Game.phase = "ATTACKING";
     }
+    updateDamagePreview();
   }
 
   function selectBuilding(b, x, y){
@@ -2203,6 +2253,7 @@
     clearSelection();
     Game.sel = { type:"building", building:b, x, y };
     updateSelectionPanel();
+    updateDamagePreview();
   }
 
   // NEW: select tile (even empty) so we can show defense stat
@@ -2741,12 +2792,20 @@
   function showBattleOverlay({ attacker, defender, atkBefore, atkAfter, defBefore, defAfter, attackerLabel, defenderLabel, attackerImg, defenderImg, atkMax, defMax, leftText="", rightText="" }){
     return new Promise(resolve=>{
       if(!battleOverlay) return resolve();
+      let holdBattle = false;
+      const holdKeyHandler = (e)=>{ if(e.key==="p"||e.key==="P") holdBattle=true; };
+      const releaseKeyHandler = (e)=>{ if(e.key==="p"||e.key==="P") holdBattle=false; };
+      window.addEventListener("keydown", holdKeyHandler);
+      window.addEventListener("keyup", releaseKeyHandler);
+
       // Force blue (P1) on left, red (P2) on right by swapping when needed
       let left = { img:attackerImg, label:attackerLabel, before:atkBefore, after:atkAfter, max:atkMax, dmg:leftText };
       let right = { img:defenderImg, label:defenderLabel, before:defBefore, after:defAfter, max:defMax, dmg:rightText };
+      let attackerOnLeft = true;
       if(attacker && defender && attacker.owner===2 && defender.owner===1){
         left = { img:defenderImg, label:defenderLabel, before:defBefore, after:defAfter, max:defMax, dmg:rightText };
         right = { img:attackerImg, label:attackerLabel, before:atkBefore, after:atkAfter, max:atkMax, dmg:leftText };
+        attackerOnLeft = false;
       }
 
       battleOverlay.style.display = "flex";
@@ -2758,25 +2817,64 @@
       if(battleLeftDmg) battleLeftDmg.textContent = left.dmg;
       if(battleRightDmg) battleRightDmg.textContent = right.dmg;
 
-      battleLeftImg.parentElement.classList.remove("hitLeft");
-      battleRightImg.parentElement.classList.remove("hitRight");
+      const leftBox = battleLeftImg.parentElement;
+      const rightBox = battleRightImg.parentElement;
+      leftBox.classList.remove("hitLeft","hitRight");
+      rightBox.classList.remove("hitLeft","hitRight");
 
       setHPBar(battleLeftHP, left.before, left.max || left.before || 1);
       setHPBar(battleRightHP, right.before, right.max || right.before || 1);
 
-      void battleOverlay.offsetWidth; // reflow
+      const applyHit = (box, cls)=>{ box.classList.remove(cls); void box.offsetWidth; box.classList.add(cls); };
+      const attackerBox = attackerOnLeft ? leftBox : rightBox;
+      const defenderBox = attackerOnLeft ? rightBox : leftBox;
+      const attackerHPBar = attackerOnLeft ? battleLeftHP : battleRightHP;
+      const defenderHPBar = attackerOnLeft ? battleRightHP : battleLeftHP;
+      const attackerAfter = attackerOnLeft ? left.after : right.after;
+      const defenderAfter = attackerOnLeft ? right.after : left.after;
+      const attackerBefore = attackerOnLeft ? left.before : right.before;
+      const defenderBefore = attackerOnLeft ? right.before : left.before;
+      const attackerMax = attackerOnLeft ? (left.max || left.before || 1) : (right.max || right.before || 1);
+      const defenderMax = attackerOnLeft ? (right.max || right.before || 1) : (left.max || left.before || 1);
+      const attackerHitClass = attackerOnLeft ? "hitLeft" : "hitRight";   // attacker lunges toward enemy
+      const defenderHitClass = attackerOnLeft ? "hitRight" : "hitLeft";   // defender lunges toward attacker when retaliating
+      const willRetal = attackerAfter !== attackerBefore;
 
+      // phase 1: attacker strikes
+      const firstHitDelay = 30;
       setTimeout(()=>{
-        battleLeftImg.parentElement.classList.add("hitLeft");
-        battleRightImg.parentElement.classList.add("hitRight");
-        setHPBar(battleLeftHP, left.after, left.max || Math.max(left.before,1));
-        setHPBar(battleRightHP, right.after, right.max || Math.max(right.before,1));
-      }, 30);
+        // attacker animates forward, defender HP drops
+        applyHit(attackerBox, attackerHitClass);
+        setHPBar(defenderHPBar, defenderAfter, defenderMax);
+      }, firstHitDelay);
 
-      setTimeout(()=>{
+      // phase 2: retaliation (if any)
+      if(willRetal){
+        const retalDelay = firstHitDelay + 500; // explicit 0.5s gap
+        setTimeout(()=>{
+          // defender retaliates (now acting as attacker)
+          applyHit(defenderBox, defenderHitClass);
+          setHPBar(attackerHPBar, attackerAfter, attackerMax);
+        }, retalDelay);
+      }
+
+      const total = willRetal ? 1500 : 900;
+      const endTime = performance.now() + total;
+      const waitToClose = ()=>{
+        if(holdBattle){
+          requestAnimationFrame(waitToClose);
+          return;
+        }
+        if(performance.now() < endTime){
+          requestAnimationFrame(waitToClose);
+          return;
+        }
         battleOverlay.style.display = "none";
+        window.removeEventListener("keydown", holdKeyHandler);
+        window.removeEventListener("keyup", releaseKeyHandler);
         resolve();
-      }, 1300);
+      };
+      waitToClose();
     });
   }
 
@@ -2992,6 +3090,52 @@
     return { showMove, showAtk, showAtkFull };
   }
 
+  function updateDamagePreview(){
+    if(!damagePreviewEl){
+      return;
+    }
+    damagePreviewEl.style.display = "none";
+    if(!qKeyHeld) return;
+    if(!Game.sel || Game.sel.type!=="unit") return;
+    const su = Game.sel.unit;
+    if(!canAttackThisTurn(su)) return;
+    const {x,y} = Game.hovered;
+    const target = unitAt(x,y);
+    if(!target || target.owner===su.owner) return;
+    const atkKey = key(target.x, target.y);
+    if(!Game.atkTiles || !Game.atkTiles.has(atkKey)) return;
+
+    const atkRange = computeDamageMinMax(su, target, su.hp);
+    let retMin = 0, retMax = 0;
+    let retText = "Retal Range: None";
+    if(canRetaliate(target, su)){
+      const hpAfterMax = Math.max(0, target.hp - atkRange.max);
+      const hpAfterMin = Math.max(0, target.hp - atkRange.min);
+      if(hpAfterMax>0){
+        const rMin = computeDamageMinMax(target, su, hpAfterMax);
+        retMin = rMin.min;
+      }
+      if(hpAfterMin>0){
+        const rMax = computeDamageMinMax(target, su, hpAfterMin);
+        retMax = rMax.max;
+      }
+      if(retMin>0 || retMax>0){
+        retText = `Retal Range: ${retMin} to ${retMax}`;
+      }
+    }
+    damagePreviewEl.innerHTML = `<div class="previewHeader">Attack Info</div>
+                                 <div class="previewRow"><img src="assets/damage_2.png" class="previewIcon" alt="Dmg"><span>${atkRange.min} to ${atkRange.max}</span></div>
+                                 <div class="previewRow" style="margin-bottom:0"><img src="assets/retal.png" class="previewIcon" alt="Retal"><span>${retText.replace("Retal Range: ","")}</span></div>`;
+
+    const rect = canvas.getBoundingClientRect();
+    const px = target.x * TILE + TILE/2;
+    const py = target.y * TILE + TILE/2;
+    damagePreviewEl.style.left = `${rect.left + px}px`;
+    damagePreviewEl.style.top = `${rect.top + py - 8}px`;
+    damagePreviewEl.style.transform = "translate(-50%, -100%)";
+    damagePreviewEl.style.display = "block";
+  }
+
   function unitMoveBonus(u){
     const co = getCOChoice(u.owner);
     const state = Game.coState[u.owner];
@@ -3117,6 +3261,19 @@
     return stars;
   }
 
+  function hpDamageMultiplier(hp){
+    // Piecewise linear scaling based on given breakpoints.
+    if(hp>=10) return 1;
+    if(hp>=8) return 0.8 + (hp-8)*( (1-0.8)/2 );   // 8-10 -> 0.8-1
+    if(hp>=5) return 0.5 + (hp-5)*( (0.8-0.5)/3 ); // 5-8 -> 0.5-0.8
+    if(hp>=1) return 0.1 + (hp-1)*( (0.5-0.1)/4 ); // 1-5 -> 0.1-0.5
+    return 0.1;
+  }
+
+  function roundDamage(val){
+    return Math.floor(val + 0.5);
+  }
+
   function allyCoverPct(unit){
     if(!unit) return 0;
     let count = 0;
@@ -3129,34 +3286,64 @@
     return clamp(count * 0.05, 0, 0.2); // up to 20% reduction from nearby allies
   }
 
-  function computeDamageRoll(attacker, defender){
+  function computeDamageRoll(attacker, defender, attackerHpOverride=null){
     const stars = terrainDefenseBonus(defender.x, defender.y);
     const guardPct = allyCoverPct(defender);
     // Terrain + nearby ally cover reduce damage independently of HP.
     const defScale = (1 - clamp(stars * 0.1, 0, 0.9)) * (1 - guardPct);
     const mult = attackMultiplier(attacker, defender);
+    const atkHp = attackerHpOverride ?? attacker.hp ?? attacker.def?.maxHP ?? 10;
+    const hpMult = hpDamageMultiplier(atkHp);
 
     const entry = getDamageRangeEntry(attacker.def.id, defender.def.id);
     if(entry){
       const [minBase, maxBase] = entry;
 
-      const scaledMin = minBase * mult * defScale;
-      const scaledMax = maxBase * mult * defScale;
+      const scaledMin = minBase * mult * defScale * hpMult;
+      const scaledMax = maxBase * mult * defScale * hpMult;
 
-      const min = clamp(Math.floor(scaledMin), 0, defender.def.maxHP);
-      const max = clamp(Math.ceil(scaledMax), min, defender.def.maxHP);
-      const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
+      let min = clamp(roundDamage(scaledMin), 0, defender.def.maxHP);
+      let max = clamp(roundDamage(scaledMax), min, defender.def.maxHP);
+      let roll = clamp(randBetween(min, max), min, defender.def.maxHP);
+      if(roll>0) roll = Math.max(1, roll);
       return { roll, min, max, stars, guardPct };
     }
 
     // Fallback to legacy calculation if a matchup isn't defined.
     const atkBase = attacker.def.baseAtk[defender.def.id] ?? 4;
-    let raw = atkBase * mult * defScale;
+    let raw = atkBase * mult * defScale * hpMult;
 
-    const min = Math.max(0, Math.floor(raw * 0.85));
-    const max = Math.max(min, Math.ceil(raw * 1.15));
-    const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
+    let min = Math.max(0, roundDamage(raw * 0.85));
+    let max = Math.max(min, roundDamage(raw * 1.15));
+    let roll = clamp(randBetween(min, max), min, defender.def.maxHP);
+    if(roll>0) roll = Math.max(1, roll);
     return { roll, min, max, stars, guardPct };
+  }
+
+  function computeDamageMinMax(attacker, defender, attackerHpOverride=null){
+    const stars = terrainDefenseBonus(defender.x, defender.y);
+    const guardPct = allyCoverPct(defender);
+    const defScale = (1 - clamp(stars * 0.1, 0, 0.9)) * (1 - guardPct);
+    const mult = attackMultiplier(attacker, defender);
+    const atkHp = attackerHpOverride ?? attacker.hp ?? attacker.def?.maxHP ?? 10;
+    const hpMult = hpDamageMultiplier(atkHp);
+
+    const entry = getDamageRangeEntry(attacker.def.id, defender.def.id);
+    if(entry){
+      const [minBase, maxBase] = entry;
+      let min = clamp(roundDamage(minBase * mult * defScale * hpMult), 0, defender.def.maxHP);
+      let max = clamp(roundDamage(maxBase * mult * defScale * hpMult), min, defender.def.maxHP);
+      if(max>0) min = Math.max(1, min);
+      return { min, max };
+    }
+
+    const atkBase = attacker.def.baseAtk[defender.def.id] ?? 4;
+    let rawMin = atkBase * mult * defScale * hpMult * 0.85;
+    let rawMax = atkBase * mult * defScale * hpMult * 1.15;
+    let min = Math.max(0, roundDamage(rawMin));
+    let max = Math.max(min, roundDamage(rawMax));
+    if(max>0) min = Math.max(1, min);
+    return { min, max };
   }
 
   function previewDamageRange(def){
@@ -3191,12 +3378,9 @@
     const span = (max - min) || 1;
     const hi = max - Math.max(1, Math.floor(span*0.2));
     const lo = min + Math.floor(span*0.2);
-    let tag = "Decent!";
-    if(roll >= hi) tag = "Lucky!";
-    else if(roll <= lo) tag = "Glancing!";
     const coverPct = Math.round(stars*10 + guardPct*100);
     const cover = coverPct>0 ? ` (Cover -${coverPct}%` : "";
-    return `${prefix}${tag} ${roll} Damage Dealt${cover ? cover + ")" : ""}`;
+    return `${prefix}${roll} Damage Dealt${cover ? cover + ")" : ""}`;
   }
 
   async function performAttack(attacker, defender){
@@ -3207,7 +3391,7 @@
     const defBefore = defender.hp;
     const atkBefore = attacker.hp;
 
-    const atkRoll = computeDamageRoll(attacker, defender);
+    const atkRoll = computeDamageRoll(attacker, defender, attacker.hp);
     const dmgToDef = atkRoll.roll;
     const atkMin = atkRoll.min;
     const atkMax = atkRoll.max;
@@ -3219,7 +3403,7 @@
     let newAtkHP = atkBefore;
     let defStars = 0, defGuard = 0;
     if(canRetaliate(defender, attacker) && newDefHP>0){
-      const res = computeDamageRoll(defender, attacker);
+      const res = computeDamageRoll(defender, attacker, newDefHP);
       dmgToAtk = res.roll; defMin = res.min; defMax = res.max; defStars = res.stars || 0; defGuard = res.guardPct || 0;
       newAtkHP = clamp(attacker.hp - dmgToAtk, 0, attacker.def.maxHP);
     }
@@ -3739,6 +3923,11 @@
     } else {
       Game.path = [];
     }
+    updateDamagePreview();
+  });
+  canvas.addEventListener("mouseleave", ()=>{
+    Game.hovered = {x:-1,y:-1};
+    if(damagePreviewEl) damagePreviewEl.style.display = "none";
   });
 
   canvas.addEventListener("mousedown", async (e)=>{
@@ -3763,6 +3952,9 @@
     } else if(e.key==="m" || e.key==="M"){
       mKeyHeld = true;
       updateRangePreview();
+    } else if(e.key==="q" || e.key==="Q"){
+      qKeyHeld = true;
+      updateDamagePreview();
     }
     if(e.key==="e" || e.key==="E"){
       endTurn();
@@ -3795,6 +3987,9 @@
     } else if(e.key==="m" || e.key==="M"){
       mKeyHeld = false;
       updateRangePreview();
+    } else if(e.key==="q" || e.key==="Q"){
+      qKeyHeld = false;
+      updateDamagePreview();
     }
   });
   window.addEventListener("blur", ()=>{
@@ -3844,6 +4039,16 @@
     moveBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); mBtnHeld = true; updateRangePreview(); });
     moveBtn.addEventListener("touchend", ()=>{ mBtnHeld = false; updateRangePreview(); });
   }
+  if(atkInfoBtn){
+    atkInfoBtn.addEventListener("mousedown", ()=>{ qKeyHeld = true; updateDamagePreview(); });
+    atkInfoBtn.addEventListener("mouseup", ()=>{ qKeyHeld = false; updateDamagePreview(); });
+    atkInfoBtn.addEventListener("mouseleave", ()=>{ qKeyHeld = false; updateDamagePreview(); });
+    atkInfoBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); qKeyHeld = true; updateDamagePreview(); });
+    atkInfoBtn.addEventListener("touchend", ()=>{ qKeyHeld = false; updateDamagePreview(); });
+  }
+  if(damagePreviewEl){
+    // hide on mouse leave canvas or selection change handled elsewhere
+  }
   closeKeyBtn.addEventListener("click", ()=>{ closeKey(); });
   if(p1ChooseCO) p1ChooseCO.addEventListener("click", ()=>openCOModal(1));
   if(p2ChooseCO) p2ChooseCO.addEventListener("click", ()=>openCOModal(2));
@@ -3871,6 +4076,7 @@
       function finish(commit){
         const val = commit ? input.value.trim() : original;
         setPlayerName(playerId, val || original, true);
+        if(commit) saveGameState();
         cleanup();
       }
       function cleanup(){
@@ -3982,6 +4188,7 @@
     renderShop();
 
     saveGameState();
+    updateDamagePreview();
   }
 
   /***********************************************************************
