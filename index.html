@@ -736,7 +736,8 @@
     TANK:{ 1:["assets/blue_tank.png"], 2:["assets/red_tank.png"] },
     MDT: { 1:["assets/blue_mdtank.png"], 2:["assets/red_mdtank.png"] },
     ART: { 1:["assets/blue_art.png"], 2:["assets/red_art.png"] },
-    RKT: { 1:["assets/blue_rocket.png"], 2:["assets/red_rocket.png"] }
+    RKT: { 1:["assets/blue_rocket.png"], 2:["assets/red_rocket.png"] },
+    APC: { 1:["assets/blue_apc.png"], 2:["assets/red_apc.png"] }
   };
   const SPRITE_IMAGES = {};
 
@@ -864,6 +865,20 @@
       baseAtk: { INF: 9, TANK: 8, MDT: 7, ART: 8, RKT: 7 },
       armor: 0,
       indirect: true
+    },
+
+    APC: {
+      id:"APC", name:"APC", abbr:"APC",
+      cost: 5000,
+      maxHP: 10,
+      move: 7,
+      movementType: "tread",
+      rangeMin: 1, rangeMax: 1,
+      canCapture: false,
+      baseAtk: {},
+      armor: 0,
+      transport: true,
+      canAttack: false
     }
   };
 
@@ -875,6 +890,7 @@
       MDT: [0,1],
       ART: [1,2],
       RKT: [2,3],
+      APC: [1,2],
       RECON: [1,2]
     },
     RECON: {
@@ -883,7 +899,8 @@
       TANK: [1,2],
       MDT: [0,1],
       ART: [4,5],
-      RKT: [5,6]
+      RKT: [5,6],
+      APC: [5,6]
     },
     TANK: {
       INF: [7,8],
@@ -891,6 +908,7 @@
       MDT: [1,2],
       ART: [7,7],
       RKT: [8,8],
+      APC: [7,8],
       RECON: [8,9]
     },
     MDT: {
@@ -899,6 +917,7 @@
       MDT: [5,6],
       ART: [10,10],
       RKT: [10,10],
+      APC: [10,11],
       RECON: [10,10]
     },
     ART: {
@@ -907,16 +926,21 @@
       MDT: [4,5],
       ART: [7,8],
       RKT: [8,8],
+      APC: [7,8],
       RECON: [8,8]
     },
     RKT: {
       INF: [9,10],
       TANK: [8,8],
       MDT: [5,6],
-    ART: [8,9],
-    RKT: [8,9],
-    RECON: [8,9]
-  }
+      ART: [8,9],
+      RKT: [8,9],
+      RECON: [8,9],
+      APC: [8,9]
+    },
+    APC: {
+      // unarmed; kept for completeness (no attack)
+    }
   };
 
   const UNIT_BLURB = {
@@ -926,7 +950,8 @@
     ART: "Mobile, indirect cannons that pack a punch",
     TANK: "Versatile front-line tanks designed to lead the charge",
     MDT: "Heavily armored juggernauts capable of dealing lots of damage",
-    RKT: "Long-range siege launchers that pack a crazy punch"
+    RKT: "Long-range siege launchers that pack a crazy punch",
+    APC: "Transports one infantry; unarmed but fast on treads; left-click to load, right-click to unload"
   };
 
   const PLAYERS = [
@@ -1187,7 +1212,8 @@
       moved: false,
       acted: false,
       actionsLeft: 1,
-      spriteIdx
+      spriteIdx,
+      cargo: null
     };
   }
 
@@ -1457,6 +1483,10 @@
 
   function removeUnit(u){
     const idx = Game.units.findIndex(z => z.uid===u.uid);
+    if(u.cargo){
+      logLine(`${u.cargo.def.name} lost with ${u.def.name}.`, u.cargo.owner);
+      u.cargo = null;
+    }
     if(idx>=0) Game.units.splice(idx,1);
   }
 
@@ -1872,7 +1902,13 @@
           moved: u.moved,
           acted: u.acted,
           actionsLeft: u.actionsLeft,
-          spriteIdx: u.spriteIdx
+          spriteIdx: u.spriteIdx,
+          cargo: u.cargo ? {
+            typeId: u.cargo.typeId,
+            owner: u.cargo.owner,
+            hp: u.cargo.hp,
+            spriteIdx: u.cargo.spriteIdx
+          } : null
         })),
         coChoice: Game.coChoice,
         coMeter: Game.coMeter,
@@ -1945,6 +1981,16 @@
           nu.acted = !!u.acted;
           nu.actionsLeft = u.actionsLeft ?? 1;
           nu.spriteIdx = u.spriteIdx ?? 0;
+          if(u.cargo){
+            const def = UNIT_DEF[u.cargo.typeId];
+            nu.cargo = {
+              typeId: u.cargo.typeId,
+              owner: u.cargo.owner,
+              hp: u.cargo.hp ?? (def ? def.maxHP : 10),
+              spriteIdx: u.cargo.spriteIdx ?? 0,
+              def
+            };
+          }
           Game.units.push(nu);
         }
       }
@@ -3224,6 +3270,10 @@
     return false;
   }
 
+  function adjacent(a,b){
+    return manhattan({x:a.x,y:a.y},{x:b.x,y:b.y})===1;
+  }
+
   function enemyInRangeAt(unit, k){
     const {x,y} = parseKey(k);
     const target = unitAt(x,y);
@@ -3231,9 +3281,29 @@
     return target.owner !== unit.owner;
   }
 
+  function unloadCargo(apc, x, y){
+    if(!apc || !isAPC(apc) || !apc.cargo) return false;
+    if(!adjacent({x:apc.x,y:apc.y},{x,y})) return false;
+    if(unitAt(x,y)) return false;
+    const cargo = apc.cargo;
+    const nu = makeUnit(cargo.typeId, cargo.owner, x, y);
+    nu.hp = cargo.hp ?? nu.def.maxHP;
+    nu.spriteIdx = cargo.spriteIdx ?? 0;
+    nu.moved = true;
+    nu.acted = true;
+    Game.units.push(nu);
+    apc.cargo = null;
+    apc.acted = true;
+    logLine(`${owningPlayer(apc.owner).name} unloads ${nu.def.name}.`, apc.owner);
+    updateUI();
+    return true;
+  }
+
   function isDirectUnit(u){ return !u.def.indirect; }
   function isIndirectUnit(u){ return !!u.def.indirect; }
   function isInfantry(u){ return u.def.id==="INF"; }
+  function canLoadIntoAPC(u){ return u.def.id==="INF"; }
+  function isAPC(u){ return u.def.id==="APC"; }
 
   const NO_PROJECTION_ATTACK_UNITS = new Set(["INF","RECON","TANK","MDT"]);
 
@@ -3248,6 +3318,7 @@
     if(!u) return false;
     if(Game.gameOver) return false;
     if(u.owner !== Game.currentPlayer) return false;
+    if(u.def && u.def.canAttack===false) return false;
     if(u.acted) return false;
     if(isIndirectUnit(u) && u.moved) return false;
     return true;
@@ -3367,7 +3438,7 @@
   }
 
   function damageProfileText(attackerId){
-    const order = ["INF","RECON","TANK","MDT","ART","RKT"];
+    const order = ["INF","RECON","TANK","MDT","ART","RKT","APC"];
     const table = DAMAGE_TABLE[attackerId];
     if(!table) return "Damage: —";
     const parts = [];
@@ -3405,6 +3476,7 @@
   }
 
   function damageDisplayText(attackerId){
+    if(attackerId==="APC") return "Damage: N/A";
     if(Game.dmgDetail){
       return damageProfileText(attackerId);
     }
@@ -3745,7 +3817,7 @@
    * Building / Shop
    ***********************************************************************/
   // UPDATED: include new units; keep existing list concept
-  const SHOP_UNITS = ["INF","RECON","TANK","MDT","ART","RKT"];
+  const SHOP_UNITS = ["INF","APC","RECON","TANK","MDT","ART","RKT"];
 
   function canBuildFromBuilding(b, playerId){
     if(!b || b.owner!==playerId) return false;
@@ -4056,6 +4128,17 @@
           return;
         }
 
+        // Boarding: infantry -> adjacent friendly APC
+        const targetUnit = unitAt(x,y);
+        if(targetUnit && isAPC(targetUnit) && targetUnit.owner===su.owner && canLoadIntoAPC(su) && !targetUnit.cargo && adjacent({x:su.x,y:su.y},{x,y})){
+          targetUnit.cargo = { typeId: su.typeId, owner: su.owner, hp: su.hp, spriteIdx: su.spriteIdx, def: su.def };
+          removeUnit(su);
+          logLine(`${owningPlayer(targetUnit.owner).name} loads ${targetUnit.cargo.def.name} into APC.`, targetUnit.owner);
+          selectUnit(targetUnit);
+          updateUI();
+          return;
+        }
+
         if(!su.acted){
           if(canAttackThisTurn(su) && Game.atkTiles.has(clickedKey) && enemyInRangeAt(su,clickedKey)){
             const target = unitAt(x,y);
@@ -4088,6 +4171,10 @@
 
     // selection order: unit -> building -> tile
     if(u){
+      // Unload if APC with cargo and clicking adjacent empty tile
+      if(isAPC(u) && u.owner===Game.currentPlayer && u.cargo && !unitAt(x,y) && adjacent({x:u.x,y:u.y},{x,y})){
+        if(unloadCargo(u,x,y)) return;
+      }
       selectUnit(u);
       return;
     }
@@ -4103,6 +4190,14 @@
 
   function onRightClick(e){
     e.preventDefault();
+    // allow right-click unload for APC cargo
+    if(Game.sel && Game.sel.type==="unit"){
+      const u = Game.sel.unit;
+      const g = canvasToGrid(e.clientX, e.clientY);
+      if(isAPC(u) && u.cargo && inBounds(g.x,g.y)){
+        if(unloadCargo(u, g.x, g.y)) return;
+      }
+    }
     closeShop();
     closeKey();
     clearSelection();
@@ -4565,6 +4660,17 @@
         ctx.fillStyle = "#000000";
         ctx.fillRect(px,py,TILE,TILE);
         ctx.globalAlpha = 1;
+      }
+
+      // Transport indicator
+      if(u.def.transport && u.cargo){
+        ctx.fillStyle = "#0b1433";
+        ctx.fillRect(px+4, py+TILE-14, TILE-8, 10);
+        ctx.strokeStyle = "#4a67d6";
+        ctx.strokeRect(px+4, py+TILE-14, TILE-8, 10);
+        ctx.fillStyle = "#e8eeff";
+        ctx.font = "bold 9px system-ui";
+        ctx.fillText("CARGO", px+8, py+TILE-6);
       }
     }
   }
