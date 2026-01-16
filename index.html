@@ -2883,6 +2883,19 @@
     }
   }
 
+  function spawnDefaultPortUnits(){
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = buildingAt(x,y);
+        if(b && b.kindId==="SHIPPORT" && b.owner){
+          if(!unitAt(x,y)){
+            Game.units.push(makeUnit("SUB", b.owner, x, y));
+          }
+        }
+      }
+    }
+  }
+
   function freshMatch(){
     Game.day = 1;
     Game.currentPlayer = 1;
@@ -2912,7 +2925,10 @@
     if(!Game.customMapText) Game.customMapText = DEFAULT_CUSTOM_MAP;
 
     applySelectedMap();
-    spawnDefaultAirportUnits();
+    if(Game.selectedMap!=="CUSTOM"){
+      spawnDefaultAirportUnits();
+      spawnDefaultPortUnits();
+    }
 
     if(Game.selectedMap!=="CUSTOM"){
       // Starting units (balanced; includes some new unit types)
@@ -3855,7 +3871,7 @@
     if(!Game.sel || Game.sel.type!=="unit") return;
     const u = Game.sel.unit;
 
-    const canProjectAfterMove = !isIndirectUnit(u) && !NO_PROJECTION_ATTACK_UNITS.has(u.def.id);
+    const canProjectAfterMove = !isIndirectUnit(u) && !NO_PROJECTION_ATTACK_UNITS.has(u.def.id) && !isSeaUnit(u) && !isAirUnit(u);
     const useMoveProjection = (Game.moveTiles && Game.moveTiles.size && u.owner===Game.currentPlayer && !u.moved && canProjectAfterMove);
     const origins = [];
 
@@ -3967,6 +3983,7 @@
   function isAPC(u){ return u.def.id==="APC"; }
   function isLander(u){ return u.def.id==="LND"; }
   function isSeaUnit(u){ return u.def.movementType==="sea"; }
+  function isAirUnit(u){ return u.def.movementType==="air"; }
   function transportCapacity(u){ return u.def.transportCapacity || 1; }
   function cargoCount(u){
     if(!u || !u.cargo) return 0;
