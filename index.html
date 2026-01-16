@@ -309,9 +309,21 @@
       gap:8px;
       text-align:center;
     }
-    .customPalette{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    .customPalette{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
+    }
+    .paletteRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:center;
+      width:100%;
+    }
     .tileSwatch{
-      width:40px;height:40px;border-radius:10px;border:1px solid #23346b;
+      width:56px;height:56px;border-radius:12px;border:1px solid #23346b;
       display:flex;align-items:center;justify-content:center;
       cursor:pointer;
       background:#0a1026;
@@ -322,20 +334,31 @@
     .tileSwatch.active{box-shadow:0 0 0 2px var(--accent);}
     .customGrid{
       display:grid;
-      grid-template-columns:repeat(16, 26px);
-      grid-auto-rows:26px;
+      grid-template-columns:repeat(16, 36px);
+      grid-auto-rows:36px;
       gap:2px;
       background:#050814;
-      padding:6px;
+      padding:10px;
       border:1px solid #23346b;
       border-radius:10px;
-      max-width:480px;
+      max-width:640px;
       overflow:auto;
       margin-left:auto;
       margin-right:auto;
     }
+    .nameEditInput{
+      border:1px solid #4a67d6;
+      border-radius:6px;
+      padding:4px 8px;
+      background:#0b1433;
+      color:var(--text);
+      outline:none;
+      min-width:120px;
+      max-width:160px;
+      font-weight:800;
+    }
     .customCell{
-      width:26px;height:26px;
+      width:36px;height:36px;
       border-radius:6px;
       border:1px solid #23346b;
       cursor:pointer;
@@ -487,16 +510,16 @@
 
       <div class="sep"></div>
 
-      <div class="row">
+      <div class="row" style="justify-content:center; flex-wrap:wrap;">
         <button class="btn primary" id="endTurnBtn">End Turn (E)</button>
         <button class="btn" id="newBtn">New Game</button>
         <button class="btn bad" id="resetBtn" title="Hard reset the match">Reset</button>
         <button class="btn" id="openShopBtn" title="Open your shop (cycles owned bases)">Open Shop (B)</button>
-        <button class="btn" id="unselectBtn" title="Clear selection / close panels">ESC</button>
-        <button class="btn" id="moveBtn" title="Hold to show move range (M)">Move (M)</button>
-        <button class="btn" id="dmgBtn" title="Hold to show attack range (D)">Damage (D)</button>
-        <button class="btn" id="rangeBtn" title="Hold to show move+attack when spent (S)">Range (S)</button>
+        <button class="btn" id="moveBtn" title="Hold to show move range (M)">Move Range (M)</button>
+        <button class="btn" id="dmgBtn" title="Hold to show attack range (D)">Damage Range (D)</button>
+        <button class="btn" id="rangeBtn" title="Hold to show move+attack (S)">All Range (S)</button>
         <button class="btn" id="keyBtn" title="Open unit/terrain legend">Key (K)</button>
+        <button class="btn" id="unselectBtn" title="Clear selection / close panels">Unselect/Escape (ESC)</button>
       </div>
 
       <div class="sep"></div>
@@ -602,14 +625,14 @@
       </div>
       <div class="mapGrid" id="mapList"></div>
       <div class="sep"></div>
-      <div class="customMapSection">
+      <div class="customMapSection" id="customMapSection">
         <div class="big" style="font-size:15px">Custom Map (16x12)</div>
         <div class="muted" style="font-size:12px">Click or drag to paint tiles.</div>
         <div class="customPalette" id="customPalette"></div>
         <div class="customGrid" id="customGrid"></div>
         <div class="customActions">
           <button class="btn" id="fillPlains">Fill Plains</button>
-          <button class="btn" id="resetCustom">Reset</button>
+          <button class="btn bad" id="resetCustom">Reset</button>
           <button class="btn primary" id="applyCustomMap">Start Custom Map</button>
         </div>
       </div>
@@ -1033,6 +1056,8 @@
   let sKeyHeld = false, sBtnHeld = false;
   let dKeyHeld = false, dBtnHeld = false;
   let mKeyHeld = false, mBtnHeld = false;
+  const SAVE_KEY = "aw2_save_v1";
+  let nameEditActive = false;
 
   const shopBox = document.getElementById("shopBox");
   const shopList = document.getElementById("shopList");
@@ -1087,7 +1112,9 @@
     coState: { 1:null, 2:null },
     dmgDetail: false,
     selectedMap: "CLASSIC",
-    customMapText: ""
+    customMapText: "",
+    winner: null,
+    winReason: null
   };
 
   /***********************************************************************
@@ -1229,12 +1256,12 @@
   }
 
   function owningPlayer(id){ return PLAYERS.find(p=>p.id===id) || PLAYERS[0]; }
-  function setPlayerName(id, name){
+  function setPlayerName(id, name, force=false){
     const clean = (name || "").trim() || `Player ${id}`;
     const p = PLAYERS.find(x=>x.id===id);
     if(p) p.name = clean;
-    if(id===1 && p1NameLabel) p1NameLabel.textContent = clean;
-    if(id===2 && p2NameLabel) p2NameLabel.textContent = clean;
+    if(id===1 && p1NameLabel && (force || !p1NameLabel.dataset.editing)) p1NameLabel.textContent = clean;
+    if(id===2 && p2NameLabel && (force || !p2NameLabel.dataset.editing)) p2NameLabel.textContent = clean;
   }
 
   /***********************************************************************
@@ -1565,14 +1592,12 @@
     { id:"P1_MDT",  char:"D", label:"P1 Md Tank",   layer:"unit", owner:1, unit:"MDT", color:COLORS.p1Dark },
     { id:"P1_ART",  char:"E", label:"P1 Artillery", layer:"unit", owner:1, unit:"ART", color:COLORS.p1Dark },
     { id:"P1_RKT",  char:"F", label:"P1 Rockets",   layer:"unit", owner:1, unit:"RKT", color:COLORS.p1Dark },
-    { id:"SEP_UNIT",char:" ", label:"—", layer:"unit-sep" },
     { id:"P2_INF",  char:"a", label:"P2 Infantry",  layer:"unit", owner:2, unit:"INF", color:COLORS.p2Dark },
     { id:"P2_RECON",char:"b", label:"P2 Recon",     layer:"unit", owner:2, unit:"RECON", color:COLORS.p2Dark },
     { id:"P2_TANK", char:"c", label:"P2 Tank",      layer:"unit", owner:2, unit:"TANK", color:COLORS.p2Dark },
     { id:"P2_MDT",  char:"d", label:"P2 Md Tank",   layer:"unit", owner:2, unit:"MDT", color:COLORS.p2Dark },
     { id:"P2_ART",  char:"e", label:"P2 Artillery", layer:"unit", owner:2, unit:"ART", color:COLORS.p2Dark },
-    { id:"P2_RKT",  char:"f", label:"P2 Rockets",   layer:"unit", owner:2, unit:"RKT", color:COLORS.p2Dark },
-    { id:"UNIT_CLEAR", char:".", label:"Erase Unit", layer:"unit", color:"#0b1020" }
+    { id:"P2_RKT",  char:"f", label:"P2 Rockets",   layer:"unit", owner:2, unit:"RKT", color:COLORS.p2Dark }
   ];
 
   const CUSTOM_ENTRIES = [...CUSTOM_TILES, ...CUSTOM_UNITS];
@@ -1626,6 +1651,100 @@
     return CUSTOM_ENTRIES.find(t=>t.char===ch) || CUSTOM_TILES[0];
   }
 
+  function saveGameState(){
+    try{
+      const data = {
+        day: Game.day,
+        currentPlayer: Game.currentPlayer,
+        funds: Game.funds,
+        terrain: Game.terrain.map(row=>row.map(t=>t.id)),
+        buildings: Game.buildings.map(row=>row.map(b=> b ? { kindId:b.kindId, owner:b.owner, capturePoints:b.capturePoints } : null)),
+        units: Game.units.map(u=>({
+          typeId: u.typeId,
+          owner: u.owner,
+          x: u.x, y: u.y,
+          hp: u.hp,
+          moved: u.moved,
+          acted: u.acted,
+          actionsLeft: u.actionsLeft,
+          spriteIdx: u.spriteIdx
+        })),
+        coChoice: Game.coChoice,
+        coMeter: Game.coMeter,
+        coState: Game.coState,
+        selectedMap: Game.selectedMap,
+        customMapText: Game.customMapText,
+        baseCycleIdx: Game.baseCycleIdx,
+        gameOver: Game.gameOver,
+        winner: Game.winner,
+        winReason: Game.winReason
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    } catch(err){
+      console.warn("Save failed", err);
+    }
+  }
+
+  function loadGameState(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if(!raw) return false;
+      const data = JSON.parse(raw);
+      initEmptyLayers();
+      Game.day = data.day || 1;
+      Game.currentPlayer = data.currentPlayer || 1;
+      Game.funds = data.funds || {1:5000,2:5000};
+      Game.coChoice = data.coChoice || {1:"ANDY",2:"ANDY"};
+      Game.coMeter = data.coMeter || {1:0,2:0};
+      Game.coState = data.coState || {1:null,2:null};
+      Game.selectedMap = data.selectedMap || "CUSTOM";
+      Game.customMapText = data.customMapText || DEFAULT_CUSTOM_MAP;
+      Game.baseCycleIdx = data.baseCycleIdx || {1:0,2:0};
+      Game.gameOver = data.gameOver || false;
+      Game.winner = data.winner || null;
+      Game.winReason = data.winReason || null;
+      Game.sel = null;
+      Game.phase = "IDLE";
+      Game.moveMap = null;
+      Game.moveTiles = new Set();
+      Game.atkTiles = new Set();
+      Game.path = [];
+      UNIT_ID_SEQ = 1;
+      for(let y=0;y<GRID_H;y++){
+        for(let x=0;x<GRID_W;x++){
+          const tid = (data.terrain && data.terrain[y] && data.terrain[y][x]) || "PLAINS";
+          Game.terrain[y][x] = TERRAIN[tid] || TERRAIN.PLAINS;
+          const b = data.buildings && data.buildings[y] ? data.buildings[y][x] : null;
+          if(b){
+            Game.buildings[y][x] = {
+              kindId: b.kindId,
+              def: BUILDING[b.kindId],
+              owner: b.owner ?? null,
+              capturePoints: b.capturePoints ?? 20
+            };
+          }
+        }
+      }
+      Game.units = [];
+      if(Array.isArray(data.units)){
+        for(const u of data.units){
+          const nu = makeUnit(u.typeId, u.owner, u.x, u.y);
+          nu.hp = u.hp ?? nu.def.maxHP;
+          nu.moved = !!u.moved;
+          nu.acted = !!u.acted;
+          nu.actionsLeft = u.actionsLeft ?? 1;
+          nu.spriteIdx = u.spriteIdx ?? 0;
+          Game.units.push(nu);
+        }
+      }
+      updateUI();
+      return true;
+    } catch(err){
+      console.warn("Load failed", err);
+      return false;
+    }
+  }
+
   function initCustomGridFromText(text){
     const parsed = parseCustomText(text || DEFAULT_CUSTOM_MAP);
     customGrid = parsed.terrain;
@@ -1643,6 +1762,14 @@
     return "PLAINS";
   }
 
+  function terrainCharFromId(id){
+    if(id==="FOREST") return "f";
+    if(id==="MOUNTAIN") return "m";
+    if(id==="ROAD") return "=";
+    if(id==="WATER") return "~";
+    return ".";
+  }
+
   function buildingFromChar(ch){
     if(ch==="c") return { kind:"CITY", owner:null };
     if(ch==="b") return { kind:"BASE", owner:null };
@@ -1652,6 +1779,38 @@
     if(ch==="H") return { kind:"HQ", owner:1 };
     if(ch==="R") return { kind:"HQ", owner:2 };
     return null;
+  }
+
+  function buildingChar(kind, owner){
+    if(kind==="CITY") return "c";
+    if(kind==="BASE"){
+      if(owner===1) return "1";
+      if(owner===2) return "2";
+      return "b";
+    }
+    if(kind==="HQ"){
+      if(owner===1) return "H";
+      if(owner===2) return "R";
+      return "h";
+    }
+    return null;
+  }
+
+  function mapStateToCustomText(){
+    const terrainChars = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>"."));
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const t = terrainAt(x,y);
+        terrainChars[y][x] = terrainCharFromId(t.id);
+        const b = buildingAt(x,y);
+        if(b){
+          const ch = buildingChar(b.kindId, b.owner);
+          if(ch) terrainChars[y][x] = ch;
+        }
+      }
+    }
+    const emptyUnits = Array.from({length:GRID_H}, ()=>Array.from({length:GRID_W}, ()=>"."));
+    return gridToTextWithUnits(terrainChars, emptyUnits);
   }
 
   function unitFromChar(ch){
@@ -1668,6 +1827,8 @@
     const terrainSprite = getTerrainSprite(t.id);
     const b = buildingFromChar(terrainChar);
     const u = unitFromChar(unitChar);
+    const isPalette = cell.classList.contains("tileSwatch");
+    const isCustomPreview = cell.classList.contains("customCell"); // custom map grid
     let bg = tileByChar(terrainChar).color;
     const imgs = [];
     const sizes = [];
@@ -1676,8 +1837,10 @@
     if(b){
       const sprite = getBuildingSprite(b.kind, b.owner ?? 0);
       if(sprite){
+        const paletteSize = (b.kind==="BASE" || b.kind==="HQ") ? "65%" : "70%";
         imgs.push(`url(${sprite.src})`);
-        sizes.push("cover");
+        const useSmall = isPalette || isCustomPreview;
+        sizes.push(useSmall ? paletteSize : "cover");
         positions.push("center");
       }
     } else if(terrainSprite){
@@ -1723,29 +1886,35 @@
   function renderCustomPalette(){
     if(!customPalette) return;
     customPalette.innerHTML = "";
-    for(const t of CUSTOM_ENTRIES){
-      const btn = document.createElement("div");
-      if(t.layer==="unit-sep"){
-        btn.style.width = "100%";
-        btn.style.height = "4px";
-        btn.style.borderTop = "1px solid #23346b";
-        btn.style.opacity = 0.5;
-        customPalette.appendChild(btn);
-        continue;
+
+    const makeRow = (items)=>{
+      const row = document.createElement("div");
+      row.className = "paletteRow";
+      for(const t of items){
+        const btn = document.createElement("div");
+        btn.className = "tileSwatch" + (customTileSelection.id===t.id ? " active" : "");
+        if(t.layer==="unit"){
+          setTileVisual(btn, ".", t.char);
+        } else {
+          setTileVisual(btn, t.char);
+        }
+        btn.title = t.label;
+        btn.addEventListener("click", ()=>{
+          customTileSelection = t;
+          renderCustomPalette();
+        });
+        row.appendChild(btn);
       }
-      btn.className = "tileSwatch" + (customTileSelection.id===t.id ? " active" : "");
-      if(t.layer==="unit"){
-        setTileVisual(btn, ".", t.char);
-      } else {
-        setTileVisual(btn, t.char);
-      }
-      btn.title = t.label;
-      btn.addEventListener("click", ()=>{
-        customTileSelection = t;
-        renderCustomPalette();
-      });
-      customPalette.appendChild(btn);
-    }
+      return row;
+    };
+
+    const terrainRow = makeRow(CUSTOM_TILES);
+    const p1Row = makeRow(CUSTOM_UNITS.filter(u=>u.owner===1));
+    const p2Row = makeRow(CUSTOM_UNITS.filter(u=>u.owner===2));
+
+    customPalette.appendChild(terrainRow);
+    customPalette.appendChild(p1Row);
+    customPalette.appendChild(p2Row);
   }
 
   function renderCustomGrid(){
@@ -1859,6 +2028,8 @@
     Game.baseCycleIdx = {1:0, 2:0};
     Game.hovered = {x:-1,y:-1};
     Game.gameOver = false;
+    Game.winner = null;
+    Game.winReason = null;
     Game.coMeter = {1:0, 2:0};
     Game.coState = {1:null, 2:null};
     Game.coChoice = {1:"ANDY", 2:"ANDY"};
@@ -2128,7 +2299,10 @@
       rangePill.textContent = `Range: ${rangeText}`;
 
       const statusPill = document.createElement("span");
-      statusPill.className = "pill " + (statusGood ? "good" : "bad");
+      const bothReady = (!u.moved && !u.acted);
+      const bothSpent = (u.moved && u.acted);
+      const partial = (!bothReady && !bothSpent);
+      statusPill.className = "pill " + (bothReady ? "good" : bothSpent ? "bad" : "warn");
       statusPill.textContent = `Status: ${moveStatus} / ${atkStatus}`;
 
       const terrain = terrainAt(u.x,u.y);
@@ -2295,8 +2469,8 @@
 
     p1COName.textContent = co1.name;
     p2COName.textContent = co2.name;
-    if(p1NameLabel) p1NameLabel.textContent = owningPlayer(1).name;
-    if(p2NameLabel) p2NameLabel.textContent = owningPlayer(2).name;
+    if(p1NameLabel && !p1NameLabel.dataset.editing) p1NameLabel.textContent = owningPlayer(1).name;
+    if(p2NameLabel && !p2NameLabel.dataset.editing) p2NameLabel.textContent = owningPlayer(2).name;
     p1COSpecialty.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co1.specialty}</span></div>`;
     p2COSpecialty.innerHTML = `<div class="abilityLine"><span class="abilityBadge">Day-to-day</span><span class="abilityCopy">${co2.specialty}</span></div>`;
     p1COPower.innerHTML = `<div class="abilityLine"><span class="abilityBadge">CO Power</span><span class="abilityCopy">${co1.power}</span></div>`;
@@ -2520,17 +2694,37 @@
       const meta = document.createElement("div");
       meta.className = "meta";
       meta.textContent = m.desc;
-      const btn = document.createElement("button");
-      btn.className = "btn primary";
-      btn.textContent = "Play";
-      btn.addEventListener("click", ()=>{
+      const btnRow = document.createElement("div");
+      btnRow.style.display = "flex";
+      btnRow.style.gap = "8px";
+      const playBtn = document.createElement("button");
+      playBtn.className = "btn primary";
+      playBtn.textContent = "Play";
+      playBtn.addEventListener("click", ()=>{
         Game.selectedMap = m.id;
         closeMapPicker();
         freshMatch();
       });
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn";
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", ()=>{
+        Game.selectedMap = m.id;
+        if(m.gen) m.gen();
+        Game.customMapText = mapStateToCustomText();
+        initCustomGridFromText(Game.customMapText);
+        renderCustomGrid();
+        Game.selectedMap = "CUSTOM";
+        const target = document.getElementById("customMapSection");
+        if(target){
+          target.scrollIntoView({ behavior:"smooth" });
+        }
+      });
+      btnRow.appendChild(playBtn);
+      btnRow.appendChild(editBtn);
       card.appendChild(name);
       card.appendChild(meta);
-      card.appendChild(btn);
+      card.appendChild(btnRow);
       mapList.appendChild(card);
     }
   }
@@ -2731,6 +2925,15 @@
     return tiles;
   }
 
+  function unitHasEnemyInRange(u){
+    if(!u || !canAttackThisTurn(u)) return false;
+    const tiles = computeAttackTilesFromPosition(u, {x:u.x, y:u.y});
+    for(const k of tiles){
+      if(enemyInRangeAt(u, k)) return true;
+    }
+    return false;
+  }
+
   function enemyInRangeAt(unit, k){
     const {x,y} = parseKey(k);
     const target = unitAt(x,y);
@@ -2761,30 +2964,32 @@
   }
 
   function overlayVisibility(u){
-    const sActive = (sKeyHeld || sBtnHeld) && u.moved && u.acted; // S only needed when fully spent
+    const sActive = (sKeyHeld || sBtnHeld);
     const dActive = dKeyHeld || dBtnHeld;
     const mActive = mKeyHeld || mBtnHeld;
+    const canMove = canMoveThisTurn(u);
+    const canAtk = canAttackThisTurn(u);
+    const enemyInRange = unitHasEnemyInRange(u);
+
     let showMove = false;
     let showAtk = false;
+    let showAtkFull = false;
 
-    if((mActive && dActive) || sActive){
+    if(sActive){
       showMove = true;
       showAtk = true;
-    } else if(mActive){
-      showMove = true;
-    } else if(dActive){
-      showAtk = true;
+      showAtkFull = true;
     } else {
-      if(!u.moved && !u.acted){
-        showMove = true;
+      showMove = mActive ? true : canMove;
+      if(dActive){
         showAtk = true;
-      } else if(u.moved && !u.acted){
-        showAtk = true;
-      } else if(!u.moved && u.acted){
-        showMove = true;
+        showAtkFull = true;
+      } else {
+        showAtk = canAtk && enemyInRange;
+        showAtkFull = false;
       }
     }
-    return { showMove, showAtk };
+    return { showMove, showAtk, showAtkFull };
   }
 
   function unitMoveBonus(u){
@@ -2912,11 +3117,23 @@
     return stars;
   }
 
+  function allyCoverPct(unit){
+    if(!unit) return 0;
+    let count = 0;
+    for(const d of DIRS){
+      const nx = unit.x + d.dx;
+      const ny = unit.y + d.dy;
+      const u = unitAt(nx, ny);
+      if(u && u.owner===unit.owner) count += 1;
+    }
+    return clamp(count * 0.05, 0, 0.2); // up to 20% reduction from nearby allies
+  }
+
   function computeDamageRoll(attacker, defender){
     const stars = terrainDefenseBonus(defender.x, defender.y);
-    // Terrain defense reduces damage, but keep it independent of current HP so
-    // we apply the advertised ranges directly.
-    const defScale = 1 - clamp(stars * 0.1, 0, 0.9);
+    const guardPct = allyCoverPct(defender);
+    // Terrain + nearby ally cover reduce damage independently of HP.
+    const defScale = (1 - clamp(stars * 0.1, 0, 0.9)) * (1 - guardPct);
     const mult = attackMultiplier(attacker, defender);
 
     const entry = getDamageRangeEntry(attacker.def.id, defender.def.id);
@@ -2929,7 +3146,7 @@
       const min = clamp(Math.floor(scaledMin), 0, defender.def.maxHP);
       const max = clamp(Math.ceil(scaledMax), min, defender.def.maxHP);
       const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
-      return { roll, min, max };
+      return { roll, min, max, stars, guardPct };
     }
 
     // Fallback to legacy calculation if a matchup isn't defined.
@@ -2939,7 +3156,7 @@
     const min = Math.max(0, Math.floor(raw * 0.85));
     const max = Math.max(min, Math.ceil(raw * 1.15));
     const roll = clamp(randBetween(min, max), min, defender.def.maxHP);
-    return { roll, min, max };
+    return { roll, min, max, stars, guardPct };
   }
 
   function previewDamageRange(def){
@@ -2970,14 +3187,16 @@
     return d>=minR && d<=maxR;
   }
 
-  function damageLabel(roll, min, max, prefix=""){
+  function damageLabel(roll, min, max, prefix="", stars=0, guardPct=0){
     const span = (max - min) || 1;
     const hi = max - Math.max(1, Math.floor(span*0.2));
     const lo = min + Math.floor(span*0.2);
     let tag = "Decent!";
     if(roll >= hi) tag = "Lucky!";
     else if(roll <= lo) tag = "Glancing!";
-    return `${prefix}${tag} ${roll} Damage Dealt`;
+    const coverPct = Math.round(stars*10 + guardPct*100);
+    const cover = coverPct>0 ? ` (Cover -${coverPct}%` : "";
+    return `${prefix}${tag} ${roll} Damage Dealt${cover ? cover + ")" : ""}`;
   }
 
   async function performAttack(attacker, defender){
@@ -2988,22 +3207,28 @@
     const defBefore = defender.hp;
     const atkBefore = attacker.hp;
 
-    const { roll: dmgToDef, min: atkMin, max: atkMax } = computeDamageRoll(attacker, defender);
+    const atkRoll = computeDamageRoll(attacker, defender);
+    const dmgToDef = atkRoll.roll;
+    const atkMin = atkRoll.min;
+    const atkMax = atkRoll.max;
+    const atkStars = atkRoll.stars || 0;
+    const atkGuard = atkRoll.guardPct || 0;
     const newDefHP = clamp(defender.hp - dmgToDef, 0, defender.def.maxHP);
 
     let dmgToAtk = 0, defMin=0, defMax=0;
     let newAtkHP = atkBefore;
+    let defStars = 0, defGuard = 0;
     if(canRetaliate(defender, attacker) && newDefHP>0){
       const res = computeDamageRoll(defender, attacker);
-      dmgToAtk = res.roll; defMin = res.min; defMax = res.max;
+      dmgToAtk = res.roll; defMin = res.min; defMax = res.max; defStars = res.stars || 0; defGuard = res.guardPct || 0;
       newAtkHP = clamp(attacker.hp - dmgToAtk, 0, attacker.def.maxHP);
     }
 
     grantCOMeter(attacker.owner, 15);
     if(dmgToAtk>0) grantCOMeter(defender.owner, 10);
 
-    const leftText = damageLabel(dmgToDef, atkMin, atkMax, "");
-    const rightText = dmgToAtk>0 ? `Retaliated ${dmgToAtk} Damage` : "No Retaliation";
+    const leftText = damageLabel(dmgToDef, atkMin, atkMax, "", atkStars, atkGuard);
+    const rightText = dmgToAtk>0 ? damageLabel(dmgToAtk, defMin, defMax, "Retaliated ", defStars, defGuard) : "No Retaliation";
 
     await showBattleOverlay({
       attacker,
@@ -3128,7 +3353,7 @@
       logLine(`${b.def.name} captured by ${owningPlayer(unit.owner).name}.`, unit.owner);
 
       if(b.kindId==="HQ"){
-        Game.gameOver = true;
+        declareWinner(unit.owner, "HQ captured");
         logLine(`${owningPlayer(unit.owner).name} wins by capturing the HQ.`, unit.owner);
       }
     }
@@ -3526,6 +3751,9 @@
   canvas.addEventListener("contextmenu", onRightClick);
 
   window.addEventListener("keydown", (e)=>{
+    if(nameEditActive){
+      return;
+    }
     if(e.key==="s" || e.key==="S"){
       sKeyHeld = true;
       updateRangePreview();
@@ -3621,14 +3849,51 @@
   if(p2ChooseCO) p2ChooseCO.addEventListener("click", ()=>openCOModal(2));
   if(p1COCard) p1COCard.addEventListener("click", ()=>openCOModal(1));
   if(p2COCard) p2COCard.addEventListener("click", ()=>openCOModal(2));
-  if(p1NameLabel) p1NameLabel.addEventListener("click", ()=>{
-    const val = prompt("Rename Player 1", owningPlayer(1).name);
-    if(val!==null) setPlayerName(1, val);
-  });
-  if(p2NameLabel) p2NameLabel.addEventListener("click", ()=>{
-    const val = prompt("Rename Player 2", owningPlayer(2).name);
-    if(val!==null) setPlayerName(2, val);
-  });
+  function makeInlineNameEdit(el, playerId){
+    if(!el) return;
+    el.addEventListener("click", (e)=>{
+      if(el.dataset.editing==="1") return;
+      nameEditActive = true;
+      el.dataset.editing = "1";
+      const original = owningPlayer(playerId).name;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = original;
+      input.className = "nameEditInput";
+      input.maxLength = 20;
+      const width = Math.max(120, el.offsetWidth || 0);
+      input.style.width = `${width}px`;
+      el.style.display = "none";
+      el.parentElement.insertBefore(input, el.nextSibling);
+      input.focus();
+      input.select();
+
+      function finish(commit){
+        const val = commit ? input.value.trim() : original;
+        setPlayerName(playerId, val || original, true);
+        cleanup();
+      }
+      function cleanup(){
+        nameEditActive = false;
+        el.style.display = "inline-block";
+        if(input.parentElement) input.parentElement.removeChild(input);
+        el.dataset.editing = "";
+      }
+      input.addEventListener("keydown", (ev)=>{
+        if(ev.key==="Enter"){
+          ev.preventDefault();
+          finish(true);
+        } else if(ev.key==="Escape"){
+          ev.preventDefault();
+          input.value = original;
+          finish(false);
+        }
+      });
+      input.addEventListener("blur", ()=>finish(true), { once:true });
+    });
+  }
+  makeInlineNameEdit(p1NameLabel, 1);
+  makeInlineNameEdit(p2NameLabel, 2);
   if(closeMapModal) closeMapModal.addEventListener("click", closeMapPicker);
   if(applyCustomMapBtn) applyCustomMapBtn.addEventListener("click", ()=>{
     Game.selectedMap = "CUSTOM";
@@ -3715,6 +3980,8 @@
     if(Game.sel) updateSelectionPanel();
 
     renderShop();
+
+    saveGameState();
   }
 
   /***********************************************************************
@@ -3829,6 +4096,12 @@
       const uy = py + margin;
       const size = TILE - margin*2;
 
+      // ready highlight
+      if(!u.moved && !u.acted && u.owner===Game.currentPlayer){
+        ctx.fillStyle = "rgba(116, 255, 138, 0.28)";
+        ctx.fillRect(px, py, TILE, TILE);
+      }
+
       // shadow
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = "#000000";
@@ -3915,19 +4188,36 @@
       ctx.strokeRect(CANVAS_W/2-220, CANVAS_H/2-40, 440, 80);
       ctx.fillStyle = "#e8eeff";
       ctx.font = "bold 18px system-ui";
-      ctx.fillText("GAME OVER", CANVAS_W/2-70, CANVAS_H/2-10);
+      ctx.fillText("GAME OVER", CANVAS_W/2-70, CANVAS_H/2-18);
       ctx.font = "14px system-ui";
-      ctx.fillText("Press New Game to play again.", CANVAS_W/2-110, CANVAS_H/2+18);
+      const winnerText = Game.winner ? `Winner: ${owningPlayer(Game.winner).name}${Game.winReason ? " ("+Game.winReason+")" : ""}` : "Winner: —";
+      ctx.fillText(winnerText, CANVAS_W/2-150, CANVAS_H/2);
+      ctx.fillText("Press New Game to play again.", CANVAS_W/2-110, CANVAS_H/2+24);
     }
   }
 
   function drawOverlays(){
     const selUnit = Game.sel && Game.sel.type==="unit" ? Game.sel.unit : null;
-    const { showMove, showAtk } = selUnit ? overlayVisibility(selUnit) : { showMove:false, showAtk:false };
+    const { showMove, showAtk, showAtkFull } = selUnit ? overlayVisibility(selUnit) : { showMove:false, showAtk:false, showAtkFull:false };
 
     if(showMove && Game.moveTiles && Game.moveTiles.size){
       for(const k of Game.moveTiles){
-        if(showAtk && Game.atkTiles && Game.atkTiles.has(k)) continue; // let red tiles dominate
+        const shouldSkip = showAtk && Game.atkTiles && Game.atkTiles.has(k) && selUnit && (showAtkFull || enemyInRangeAt(selUnit, k));
+        if(shouldSkip) continue; // let visible red tiles dominate
+        const {x,y} = parseKey(k);
+        const px=x*TILE, py=y*TILE;
+        ctx.fillStyle = COLORS.move;
+        ctx.fillRect(px,py,TILE,TILE);
+        ctx.strokeStyle = COLORS.moveEdge;
+        ctx.strokeRect(px+1,py+1,TILE-2,TILE-2);
+      }
+    }
+
+    // When hiding attack range (targets-only), still shade the potential attack area blue
+    if(showMove && showAtk && !showAtkFull && selUnit && Game.atkTiles && Game.atkTiles.size){
+      for(const k of Game.atkTiles){
+        if(enemyInRangeAt(selUnit, k)) continue; // actual target stays for red overlay
+        if(Game.moveTiles && Game.moveTiles.has(k)) continue; // already painted as move
         const {x,y} = parseKey(k);
         const px=x*TILE, py=y*TILE;
         ctx.fillStyle = COLORS.move;
@@ -3954,6 +4244,9 @@
 
     if(showAtk && Game.sel && Game.sel.type==="unit"){
       for(const k of Game.atkTiles){
+        if(!showAtkFull){
+          if(!enemyInRangeAt(Game.sel.unit, k)) continue;
+        }
         const {x,y} = parseKey(k);
         const px=x*TILE, py=y*TILE;
         ctx.fillStyle = COLORS.atk;
@@ -4016,6 +4309,12 @@
     return Game.units.some(u=>u.owner===ownerId);
   }
 
+  function declareWinner(playerId, reason){
+    Game.gameOver = true;
+    Game.winner = playerId;
+    Game.winReason = reason;
+  }
+
   function sanityWinCheck(){
     if(Game.gameOver) return;
 
@@ -4025,16 +4324,16 @@
     const p2Troops = hasTroops(2);
 
     if(!p1HQ){
-      Game.gameOver = true;
+      declareWinner(2, "Player 1 HQ lost");
       logLine("Player 2 wins (Player 1 HQ lost).", 2);
     } else if(!p2HQ){
-      Game.gameOver = true;
+      declareWinner(1, "Player 2 HQ lost");
       logLine("Player 1 wins (Player 2 HQ lost).", 1);
     } else if(!p1Troops && p2Troops){
-      Game.gameOver = true;
+      declareWinner(2, "Player 1 has no troops");
       logLine("Player 2 wins (Player 1 has no troops).", 2);
     } else if(!p2Troops && p1Troops){
-      Game.gameOver = true;
+      declareWinner(1, "Player 2 has no troops");
       logLine("Player 1 wins (Player 2 has no troops).", 1);
     }
   }
@@ -4102,7 +4401,9 @@ function hashInt(x, y, seed, mod) {
    * Boot
    ***********************************************************************/
   loadSprites();
-  hardReset();
+  if(!loadGameState()){
+    hardReset();
+  }
   requestAnimationFrame(draw);
 
   </script>
