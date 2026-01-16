@@ -657,6 +657,12 @@
     <div class="modalBox">
       <div class="headerRow" style="display:flex;flex-direction:column;align-items:center;gap:10px">
         <div class="big" style="font-size:18px;text-align:center;width:100%;">Choose a Map</div>
+        <div class="row" style="justify-content:center;gap:6px;flex-wrap:wrap">
+          <button class="btn" id="botHumanBtn" title="2-Player local">2P</button>
+          <button class="btn" id="botEasyBtn" title="vs Bot (Easy)">Bot Easy</button>
+          <button class="btn" id="botMedBtn" title="vs Bot (Medium)">Bot Med</button>
+          <button class="btn" id="botHardBtn" title="vs Bot (Hard)">Bot Hard</button>
+        </div>
         <button class="btn" id="closeMapModal" style="width:100%;text-align:center;">Close</button>
       </div>
       <div class="mapGrid" id="mapList"></div>
@@ -1087,6 +1093,10 @@
   const customPalette = document.getElementById("customPalette");
   const customGridEl = document.getElementById("customGrid");
   const damagePreviewEl = document.getElementById("damagePreview");
+  const botHumanBtn = document.getElementById("botHumanBtn");
+  const botEasyBtn = document.getElementById("botEasyBtn");
+  const botMedBtn = document.getElementById("botMedBtn");
+  const botHardBtn = document.getElementById("botHardBtn");
   const fillPlainsBtn = document.getElementById("fillPlains");
   const resetCustomBtn = document.getElementById("resetCustom");
 
@@ -1154,7 +1164,8 @@
     selectedMap: "CLASSIC",
     customMapText: "",
     winner: null,
-    winReason: null
+    winReason: null,
+    botMode: "HUMAN" // HUMAN | EASY | MED | HARD
   };
 
   /***********************************************************************
@@ -1275,6 +1286,160 @@
     if(!choice) return;
     selectBuilding(choice.b, choice.x, choice.y);
     openShopIfOnOwnedBase();
+  }
+
+  /***********************************************************************
+   * Bot Helpers
+   ***********************************************************************/
+  function isBotActiveForPlayer(pid){
+    return pid===2 && Game.botMode && Game.botMode!=="HUMAN";
+  }
+
+  function allUnits(playerId){
+    return Game.units.filter(u=>u.owner===playerId);
+  }
+
+  function nearestEnemy(u){
+    let best=null, bestDist=1e9;
+    for(const e of Game.units){
+      if(e.owner===u.owner) continue;
+      const d = manhattan({x:u.x,y:u.y},{x:e.x,y:e.y});
+      if(d<bestDist){ bestDist=d; best=e; }
+    }
+    return best;
+  }
+
+  function reachableTilesFor(u){
+    const tiles = new Set();
+    const dist = new Map();
+    const start = key(u.x,u.y);
+    dist.set(start,0);
+    tiles.add(start);
+    const pq=[{k:start,c:0}];
+    while(pq.length){
+      const cur = pq.shift();
+      const {x,y} = parseKey(cur.k);
+      for(const d of DIRS){
+        const nx=x+d.dx, ny=y+d.dy;
+        if(!inBounds(nx,ny)) continue;
+        const step = movementCost(u,nx,ny);
+        if(step>=99) continue;
+        if(isTileBlockedForMovement(nx,ny,u)) continue;
+        const nc = cur.c + step;
+        if(nc>unitMovePoints(u)) continue;
+        const nk = key(nx,ny);
+        if(!dist.has(nk) || nc<dist.get(nk)){
+          dist.set(nk,nc);
+          tiles.add(nk);
+          pq.push({k:nk,c:nc});
+        }
+      }
+    }
+    return tiles;
+  }
+
+  function botPickMove(u, difficulty){
+    const tiles = reachableTilesFor(u);
+    if(!tiles.size) return {x:u.x,y:u.y};
+    if(difficulty==="EASY"){
+      const arr=[...tiles];
+      const k=arr[randInt(arr.length)];
+      return parseKey(k);
+    }
+    const target = nearestEnemy(u);
+    if(!target) return {x:u.x,y:u.y};
+    let best = {k:key(u.x,u.y), dist:1e9};
+    for(const k of tiles){
+      const {x,y} = parseKey(k);
+      const d = manhattan({x,y},{x:target.x,y:target.y});
+      if(d<best.dist){
+        best={k, dist:d};
+      }
+    }
+    return parseKey(best.k);
+  }
+
+  function botChooseAttack(u){
+    const tiles = computeAttackTilesFromPosition(u, {x:u.x,y:u.y});
+    let best=null;
+    for(const k of tiles){
+      if(!enemyInRangeAt(u,k)) continue;
+      const t = unitAt(parseKey(k).x, parseKey(k).y);
+      if(!t) continue;
+      const dmg = computeDamageMinMax(u,t).max;
+      if(!best || dmg > best.dmg){ best={k, tgt:t, dmg}; }
+    }
+    return best;
+  }
+
+  async function botTryAttack(u){
+    const choice = botChooseAttack(u);
+    if(choice){
+      await performAttack(u, choice.tgt);
+      return true;
+    }
+    return false;
+  }
+
+  function botTryMove(u, difficulty){
+    const dest = botPickMove(u, difficulty);
+    if(dest.x===u.x && dest.y===u.y) return false;
+    if(unitAt(dest.x,dest.y)) return false;
+    const path = [key(u.x,u.y), key(dest.x,dest.y)].map(parseKey);
+    u.x = dest.x; u.y = dest.y;
+    u.animMove = { path, start: performance.now(), step: 500 };
+    u.moved = true;
+    return true;
+  }
+
+  function botTryBuy(difficulty){
+    if(Game.gameOver) return;
+    const ownedBases = getOwnedBases(2);
+    const emptyBases = ownedBases.filter(b=>!unitAt(b.x,b.y));
+    if(!emptyBases.length) return;
+    const roll = Math.random();
+    if(difficulty==="EASY" && roll>0.25) return;
+    if(difficulty==="MED" && roll>0.6) return;
+    // HARD buys often
+    const choice = emptyBases[randInt(emptyBases.length)];
+    const order = difficulty==="EASY" ? ["INF","RECON","TANK"] :
+                  difficulty==="MED" ? ["TANK","ART","INF","RECON","MDT"] :
+                  ["TANK","ART","MDT","INF","RECON","RKT"];
+    for(const id of order){
+      const cost = getUnitCost(UNIT_DEF[id],2);
+      if(Game.funds[2] >= cost){
+        buildUnitAtBase(id, choice.x, choice.y);
+        break;
+      }
+    }
+  }
+
+  function botMaybeUsePower(difficulty){
+    if(difficulty!=="HARD") return;
+    const meter = Game.coMeter[2] ?? 0;
+    if(meter>=CO_POWER_COST){
+      useCOPower(2,"POWER");
+    }
+  }
+
+  async function runBotTurn(difficulty){
+    // simple async loop: move/attack units then buy then end turn
+    if(Game.gameOver || Game.currentPlayer!==2) return;
+    botMaybeUsePower(difficulty);
+    const units = allUnits(2);
+    for(const u of units){
+      if(Game.gameOver) break;
+      if(u.acted && u.moved) continue;
+      const acted = await botTryAttack(u);
+      await new Promise(r=>setTimeout(r, 180)); 
+      if(!acted){
+        botTryMove(u, difficulty);
+        await botTryAttack(u);
+      }
+    }
+    botTryBuy(difficulty);
+    await new Promise(r=>setTimeout(r, 180));
+    if(!Game.gameOver) endTurn();
   }
 
   function makeSpriteNode(typeId, ownerId, size){
@@ -1723,6 +1888,7 @@
         1: owningPlayer(1).name,
         2: owningPlayer(2).name
       };
+      data.botMode = Game.botMode;
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch(err){
       console.warn("Save failed", err);
@@ -1747,6 +1913,7 @@
       Game.gameOver = data.gameOver || false;
       Game.winner = data.winner || null;
       Game.winReason = data.winReason || null;
+      Game.botMode = data.botMode || "HUMAN";
       Game.sel = null;
       Game.phase = "IDLE";
       Game.moveMap = null;
@@ -1785,6 +1952,7 @@
         if(data.playerNames[1]) setPlayerName(1, data.playerNames[1], true);
         if(data.playerNames[2]) setPlayerName(2, data.playerNames[2], true);
       }
+      renderBotButtons();
       updateUI();
       return true;
     } catch(err){
@@ -2217,6 +2385,10 @@
       income,
       co: getCOChoice(Game.currentPlayer)
     });
+
+    if(Game.botMode!=="HUMAN" && Game.currentPlayer===2){
+      runBotTurn(Game.botMode);
+    }
   }
 
   /***********************************************************************
@@ -2725,6 +2897,7 @@
     mapList.innerHTML = "";
     renderCustomPalette();
     renderCustomGrid();
+    renderBotButtons();
     for(const m of MAPS.filter(m=>m.id!=="CUSTOM")){
       const card = document.createElement("div");
       card.className = "mapCard";
@@ -2783,6 +2956,25 @@
   function openMapPicker(){
     renderMapPicker();
     if(mapModal) mapModal.style.display = "flex";
+  }
+
+  function setBotMode(mode){
+    Game.botMode = mode;
+    renderBotButtons();
+    saveGameState();
+  }
+
+  function renderBotButtons(){
+    const modes = {
+      HUMAN: botHumanBtn,
+      EASY: botEasyBtn,
+      MED: botMedBtn,
+      HARD: botHardBtn
+    };
+    for(const [mode, btn] of Object.entries(modes)){
+      if(!btn) continue;
+      btn.classList.toggle("primary", Game.botMode===mode);
+    }
   }
 
   function closeMapPicker(){
@@ -3414,22 +3606,25 @@
     const leftText = damageLabel(dmgToDef, atkMin, atkMax, "", atkStars, atkGuard);
     const rightText = dmgToAtk>0 ? damageLabel(dmgToAtk, defMin, defMax, "Retaliated ", defStars, defGuard) : "No Retaliation";
 
-    await showBattleOverlay({
-      attacker,
-      defender,
-      atkBefore,
-      atkAfter: newAtkHP,
-      defBefore,
-      defAfter: newDefHP,
-      attackerLabel: `${attacker.def.name}`,
-      defenderLabel: `${defender.def.name}`,
-      attackerImg: getUnitSpriteSrc(attacker),
-      defenderImg: getUnitSpriteSrc(defender),
-      atkMax: attacker.def.maxHP,
-      defMax: defender.def.maxHP,
-      leftText,
-      rightText
-    });
+    const skipOverlay = Game.botMode!=="HUMAN" && attacker.owner===2 && defender.owner===1;
+    if(!skipOverlay){
+      await showBattleOverlay({
+        attacker,
+        defender,
+        atkBefore,
+        atkAfter: newAtkHP,
+        defBefore,
+        defAfter: newDefHP,
+        attackerLabel: `${attacker.def.name}`,
+        defenderLabel: `${defender.def.name}`,
+        attackerImg: getUnitSpriteSrc(attacker),
+        defenderImg: getUnitSpriteSrc(defender),
+        atkMax: attacker.def.maxHP,
+        defMax: defender.def.maxHP,
+        leftText,
+        rightText
+      });
+    }
 
     defender.hp = newDefHP;
     logLine(`${owningPlayer(attacker.owner).name} ${attacker.def.name} hits ${defender.def.name} for ${dmgToDef} (roll ${atkMin}-${atkMax}).`, attacker.owner);
@@ -4046,6 +4241,10 @@
     atkInfoBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); qKeyHeld = true; updateDamagePreview(); });
     atkInfoBtn.addEventListener("touchend", ()=>{ qKeyHeld = false; updateDamagePreview(); });
   }
+  if(botHumanBtn) botHumanBtn.addEventListener("click", ()=>setBotMode("HUMAN"));
+  if(botEasyBtn) botEasyBtn.addEventListener("click", ()=>setBotMode("EASY"));
+  if(botMedBtn) botMedBtn.addEventListener("click", ()=>setBotMode("MED"));
+  if(botHardBtn) botHardBtn.addEventListener("click", ()=>setBotMode("HARD"));
   if(damagePreviewEl){
     // hide on mouse leave canvas or selection change handled elsewhere
   }
