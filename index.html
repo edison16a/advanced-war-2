@@ -315,6 +315,28 @@
     .mapCard .name{font-weight:800}
     .mapCard .meta{font-size:12px;color:var(--muted)}
     .mapCard button{align-self:flex-start}
+    .startPreview{margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+    .startPreviewRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .startPreviewRow .pill{padding:4px 8px;font-size:11px}
+    .unitSwatchRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .unitSwatch{
+      width:30px;height:30px;
+      border-radius:8px;
+      border:1px solid #23346b;
+      background:#0b1433;
+      display:flex;align-items:center;justify-content:center;
+      cursor:default;
+      box-sizing:border-box;
+    }
+    .unitSwatch img{width:26px;height:26px;object-fit:contain;image-rendering:pixelated;}
+    .unitSwatch.editable{cursor:pointer;transition:transform 0.1s ease;}
+    .unitSwatch.editable:hover{transform:translateY(-1px);border-color:var(--accent);}
+    .unitSwatch.addable{opacity:0.8;}
+    .unitSwatch.addable:hover{opacity:1;}
+    .startRow{display:flex;flex-direction:column;gap:6px;padding:6px 0;border-top:1px solid #23346b;}
+    .startRow:first-of-type{border-top:none;padding-top:0;}
+    .startRow .rowLabel{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+    .startRow .rowLabel .pill{padding:4px 10px;font-size:11px}
     .customMapSection{
       background:#0b1433;
       border:1px solid #23346b;
@@ -674,11 +696,20 @@
     <div class="modalBox">
       <div class="headerRow" style="display:flex;flex-direction:column;align-items:center;gap:10px">
         <div class="big" style="font-size:18px;text-align:center;width:100%;">Choose a Map</div>
+        <div class="muted" style="font-size:12px">Playing Modes</div>
         <div class="row" style="justify-content:center;gap:6px;flex-wrap:wrap">
           <button class="btn" id="botHumanBtn" title="2-Player local">2P</button>
           <button class="btn" id="botEasyBtn" title="vs Bot (Easy)">Bot Easy</button>
           <button class="btn" id="botMedBtn" title="vs Bot (Medium)">Bot Med</button>
           <button class="btn" id="botHardBtn" title="vs Bot (Hard)">Bot Hard</button>
+        </div>
+        <div class="muted" style="font-size:12px">Gamemodes</div>
+        <div class="row" style="justify-content:center;gap:6px;flex-wrap:wrap">
+          <button class="btn" id="gmNormal">Normal</button>
+          <button class="btn" id="gmRockets">Rockets Only</button>
+          <button class="btn" id="gmMoney">Money Madness</button>
+          <button class="btn" id="gmSky">Sky High</button>
+          <button class="btn" id="gmSea">Under the Sea</button>
         </div>
         <button class="btn" id="mapSettingsBtn" style="width:100%;text-align:center;">Settings</button>
         <div class="mapSettingsBox" id="mapSettingsBox">
@@ -692,6 +723,29 @@
           <div class="inputRow" style="justify-content:center">
             <label class="muted" for="defaultIncomeInput">Extra income/round</label>
             <input class="numInput" id="defaultIncomeInput" type="number" min="0" step="100" value="0" />
+          </div>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn" id="resetSettingsBtn">Reset Settings</button>
+          </div>
+          <div class="startRow">
+            <div class="rowLabel">
+              <span class="muted">Starting troops (click swatch to remove, click palette to add)</span>
+            </div>
+            <div class="rowLabel"><span class="pill">Ground (bases)</span></div>
+            <div class="rowLabel"><span class="pill warn">Starting Troops</span></div>
+            <div class="unitSwatchRow" id="startGroundRow"></div>
+            <div class="rowLabel"><span class="pill muted">Addable Troops</span></div>
+            <div class="unitSwatchRow" id="startGroundPalette"></div>
+            <div class="rowLabel"><span class="pill">Air (airports)</span></div>
+            <div class="rowLabel"><span class="pill warn">Starting Troops</span></div>
+            <div class="unitSwatchRow" id="startAirRow"></div>
+            <div class="rowLabel"><span class="pill muted">Addable Troops</span></div>
+            <div class="unitSwatchRow" id="startAirPalette"></div>
+            <div class="rowLabel"><span class="pill">Sea (ports)</span></div>
+            <div class="rowLabel"><span class="pill warn">Starting Troops</span></div>
+            <div class="unitSwatchRow" id="startSeaRow"></div>
+            <div class="rowLabel"><span class="pill muted">Addable Troops</span></div>
+            <div class="unitSwatchRow" id="startSeaPalette"></div>
           </div>
         </div>
         <button class="btn" id="closeMapModal" style="width:100%;text-align:center;">Close</button>
@@ -1225,6 +1279,31 @@
   function manhattan(a,b){ return Math.abs(a.x-b.x)+Math.abs(a.y-b.y); }
   function randInt(n){ return Math.floor(Math.random()*n); }
   function randBetween(min,max){ return min + randInt(max - min + 1); }
+  const DEFAULT_START_LOADOUT = {
+    ground: ["INF","INF","RECON","TANK","ART"],
+    air: ["BC"],
+    sea: ["SUB"]
+  };
+
+  const START_LOADOUT_OPTIONS = {
+    ground: ["INF","RECON","TANK","MDT","ART","RKT","APC"],
+    air: ["BC","TC","FTR","BMB"],
+    sea: ["SUB","CRU","BSH","LND"]
+  };
+  function cloneStartLoadout(src=DEFAULT_START_LOADOUT){
+    return {
+      ground: [...(src.ground || [])],
+      air: [...(src.air || [])],
+      sea: [...(src.sea || [])]
+    };
+  }
+  function normalizeStartLoadout(src){
+    const base = cloneStartLoadout(src || DEFAULT_START_LOADOUT);
+    if(!Array.isArray(base.ground)) base.ground = [];
+    if(!Array.isArray(base.air)) base.air = [];
+    if(!Array.isArray(base.sea)) base.sea = [];
+    return base;
+  }
 
   /***********************************************************************
    * DOM handles
@@ -1294,6 +1373,12 @@
   const defaultIncomeInput = document.getElementById("defaultIncomeInput");
   const mapSettingsBtn = document.getElementById("mapSettingsBtn");
   const mapSettingsBox = document.getElementById("mapSettingsBox");
+  const startGroundRow = document.getElementById("startGroundRow");
+  const startGroundPalette = document.getElementById("startGroundPalette");
+  const startAirRow = document.getElementById("startAirRow");
+  const startAirPalette = document.getElementById("startAirPalette");
+  const startSeaRow = document.getElementById("startSeaRow");
+  const startSeaPalette = document.getElementById("startSeaPalette");
 
   const elSelHint = document.getElementById("selHint");
   const elSelKv = document.getElementById("selKv");
@@ -1343,8 +1428,14 @@
   const botEasyBtn = document.getElementById("botEasyBtn");
   const botMedBtn = document.getElementById("botMedBtn");
   const botHardBtn = document.getElementById("botHardBtn");
+  const gmNormalBtn = document.getElementById("gmNormal");
+  const gmRocketsBtn = document.getElementById("gmRockets");
+  const gmMoneyBtn = document.getElementById("gmMoney");
+  const gmSkyBtn = document.getElementById("gmSky");
+  const gmSeaBtn = document.getElementById("gmSea");
   const fillPlainsBtn = document.getElementById("fillPlains");
   const resetCustomBtn = document.getElementById("resetCustom");
+  const resetSettingsBtn = document.getElementById("resetSettingsBtn");
 
   let coModalTarget = null;
   let turnOverlayTimer = null;
@@ -1415,8 +1506,12 @@
     winner: null,
     winReason: null,
     botMode: "HUMAN", // HUMAN | EASY | MED | HARD
-    shopCategory: "LAND"
+    shopCategory: "LAND",
+    startLoadout: null,
+    gamemode: "NORMAL",
+    moneyBackup: null
   };
+  Game.startLoadout = cloneStartLoadout();
 
   /***********************************************************************
    * Entities
@@ -1529,6 +1624,69 @@
     const choice = bases[idx % bases.length];
     Game.baseCycleIdx[playerId] = (idx + 1) % bases.length;
     return choice;
+  }
+
+  function ownedBuildingsByKind(playerId, kinds){
+    const want = new Set(kinds || []);
+    const list = [];
+    for(let y=0;y<GRID_H;y++){
+      for(let x=0;x<GRID_W;x++){
+        const b = buildingAt(x,y);
+        if(b && b.owner===playerId && want.has(b.kindId)){
+          list.push({b,x,y});
+        }
+      }
+    }
+    list.sort((a,b)=> (a.y - b.y) || (a.x - b.x));
+    return list;
+  }
+
+  function candidateSpawnTiles(centers){
+    const tiles = [];
+    const seen = new Set();
+    const add = (x,y)=>{
+      if(!inBounds(x,y)) return;
+      const k = key(x,y);
+      if(seen.has(k)) return;
+      seen.add(k);
+      tiles.push({x,y});
+    };
+    for(const c of centers){
+      add(c.x, c.y);
+      for(let dx=-1; dx<=1; dx++){
+        for(let dy=-1; dy<=1; dy++){
+          if(dx===0 && dy===0) continue;
+          add(c.x + dx, c.y + dy);
+        }
+      }
+    }
+    return tiles;
+  }
+
+  function canPlaceUnitAt(typeId, x, y){
+    const def = UNIT_DEF[typeId];
+    if(!def) return false;
+    if(unitAt(x,y)) return false;
+    const dummy = { def, moved:false, acted:false, owner:null };
+    const cost = movementCost(dummy, x, y);
+    return cost < 99;
+  }
+
+  function spawnUnitsNear(playerId, unitIds, primaryKinds, fallbackKinds=[]){
+    if(!unitIds || !unitIds.length) return;
+    let centers = ownedBuildingsByKind(playerId, primaryKinds);
+    if(!centers.length && fallbackKinds && fallbackKinds.length){
+      centers = ownedBuildingsByKind(playerId, fallbackKinds);
+    }
+    if(!centers.length) return;
+    const tiles = candidateSpawnTiles(centers);
+    for(const tid of unitIds){
+      const spot = tiles.find(t=>canPlaceUnitAt(tid, t.x, t.y));
+      if(spot){
+        Game.units.push(makeUnit(tid, playerId, spot.x, spot.y));
+        tiles.splice(tiles.indexOf(spot),1);
+      }
+    }
   }
 
   function autoOpenShopForCurrentPlayer(){
@@ -1704,6 +1862,22 @@
     img.style.border = "1px solid #23346b";
     img.style.background = "#0b1433";
     return img;
+  }
+
+  function makeUnitSwatch(typeId, ownerId, size=26, opts={}){
+    const wrap = document.createElement("div");
+    wrap.className = "unitSwatch";
+    if(opts.editable) wrap.classList.add("editable");
+    if(opts.addable) wrap.classList.add("addable");
+    wrap.title = UNIT_DEF[typeId]?.name || typeId;
+    const img = makeSpriteNode(typeId, ownerId, size);
+    img.style.border = "none";
+    img.style.background = "transparent";
+    wrap.appendChild(img);
+    if(typeof opts.onClick==="function"){
+      wrap.addEventListener("click", opts.onClick);
+    }
+    return wrap;
   }
 
   function removeUnit(u){
@@ -2510,7 +2684,9 @@
         baseCycleIdx: Game.baseCycleIdx,
         gameOver: Game.gameOver,
         winner: Game.winner,
-        winReason: Game.winReason
+        winReason: Game.winReason,
+        startLoadout: getStartLoadout(),
+        gamemode: Game.gamemode
       };
       data.playerNames = {
         1: owningPlayer(1).name,
@@ -2555,6 +2731,9 @@
       Game.startFunds = Number.isFinite(data.startFunds) ? data.startFunds : 5000;
       Game.cityIncome = Number.isFinite(data.cityIncome) ? data.cityIncome : 1000;
       Game.baseIncome = Number.isFinite(data.baseIncome) ? data.baseIncome : 0;
+      Game.startLoadout = normalizeStartLoadout(data.startLoadout || DEFAULT_START_LOADOUT);
+      Game.gamemode = data.gamemode || "NORMAL";
+      Game.moneyBackup = null;
       Game.coChoice = data.coChoice || {1:"ANDY",2:"ANDY"};
       Game.coMeter = data.coMeter || {1:0,2:0};
       Game.coState = data.coState || {1:null,2:null};
@@ -2935,30 +3114,16 @@
     }
   }
 
-  function spawnDefaultAirportUnits(){
-    for(let y=0;y<GRID_H;y++){
-      for(let x=0;x<GRID_W;x++){
-        const b = buildingAt(x,y);
-        if(b && b.kindId==="AIRPORT" && b.owner){
-          if(!unitAt(x,y)){
-            Game.units.push(makeUnit("BC", b.owner, x, y));
-          }
-        }
-      }
-    }
+  function spawnStartingUnitsForPlayer(playerId){
+    const lo = getStartLoadout();
+    spawnUnitsNear(playerId, lo.ground, ["BASE"], ["HQ"]);
+    spawnUnitsNear(playerId, lo.air, ["AIRPORT"]);
+    spawnUnitsNear(playerId, lo.sea, ["SHIPPORT"]);
   }
 
-  function spawnDefaultPortUnits(){
-    for(let y=0;y<GRID_H;y++){
-      for(let x=0;x<GRID_W;x++){
-        const b = buildingAt(x,y);
-        if(b && b.kindId==="SHIPPORT" && b.owner){
-          if(!unitAt(x,y)){
-            Game.units.push(makeUnit("SUB", b.owner, x, y));
-          }
-        }
-      }
-    }
+  function spawnStartingUnits(){
+    spawnStartingUnitsForPlayer(1);
+    spawnStartingUnitsForPlayer(2);
   }
 
   function freshMatch(){
@@ -2991,23 +3156,7 @@
 
     applySelectedMap();
     if(Game.selectedMap!=="CUSTOM"){
-      spawnDefaultAirportUnits();
-      spawnDefaultPortUnits();
-    }
-
-    if(Game.selectedMap!=="CUSTOM"){
-      // Starting units (balanced; includes some new unit types)
-      Game.units.push(makeUnit("INF",1, 2,2));
-      Game.units.push(makeUnit("INF",1, 3,1));
-      Game.units.push(makeUnit("RECON",1, 3,2));
-      Game.units.push(makeUnit("TANK",1, 2,3));
-      Game.units.push(makeUnit("ART",1, 4,2));
-
-      Game.units.push(makeUnit("INF",2, GRID_W-3, GRID_H-3));
-      Game.units.push(makeUnit("INF",2, GRID_W-4, GRID_H-2));
-      Game.units.push(makeUnit("RECON",2, GRID_W-4, GRID_H-4));
-      Game.units.push(makeUnit("TANK",2, GRID_W-3, GRID_H-4));
-      Game.units.push(makeUnit("ART",2, GRID_W-5, GRID_H-3));
+      spawnStartingUnits();
     }
 
     clearLog();
@@ -3633,8 +3782,193 @@
   /***********************************************************************
    * Map Picker
    ***********************************************************************/
+  function getStartLoadout(){
+    if(!Game.startLoadout) Game.startLoadout = cloneStartLoadout();
+    Game.startLoadout = normalizeStartLoadout(Game.startLoadout);
+    return Game.startLoadout;
+  }
+
+  function addStartUnit(kind, unitId){
+    const lo = getStartLoadout();
+    if(!lo[kind]) lo[kind] = [];
+    lo[kind].push(unitId);
+    saveGameState();
+    renderStartLoadoutEditor();
+    renderMapPicker();
+  }
+
+  function removeStartUnit(kind, idx){
+    const lo = getStartLoadout();
+    if(!Array.isArray(lo[kind])) return;
+    lo[kind].splice(idx,1);
+    saveGameState();
+    renderStartLoadoutEditor();
+    renderMapPicker();
+  }
+
+  function renderStartLoadoutEditor(){
+    if(!startGroundRow || !startGroundPalette) return;
+    const lo = getStartLoadout();
+    const rows = [
+      { key:"ground", row:startGroundRow, palette:startGroundPalette, options:START_LOADOUT_OPTIONS.ground, label:"Ground (bases)" },
+      { key:"air", row:startAirRow, palette:startAirPalette, options:START_LOADOUT_OPTIONS.air, label:"Air (airports)" },
+      { key:"sea", row:startSeaRow, palette:startSeaPalette, options:START_LOADOUT_OPTIONS.sea, label:"Sea (ports)" }
+    ];
+    for(const entry of rows){
+      entry.row.innerHTML = "";
+      entry.palette.innerHTML = "";
+      const list = lo[entry.key] || [];
+      if(!list.length){
+        const placeholder = document.createElement("span");
+        placeholder.className = "muted";
+        placeholder.style.fontSize = "12px";
+        placeholder.textContent = "None";
+        entry.row.appendChild(placeholder);
+      } else {
+        list.forEach((tid, idx)=>{
+          const sw = makeUnitSwatch(tid, 1, 26, {
+            editable:true,
+            onClick: ()=>removeStartUnit(entry.key, idx)
+          });
+          sw.title = `${UNIT_DEF[tid]?.name || tid} — click to remove`;
+          entry.row.appendChild(sw);
+        });
+      }
+      for(const tid of entry.options){
+        const sw = makeUnitSwatch(tid, 1, 24, {
+          addable:true,
+          onClick: ()=>addStartUnit(entry.key, tid)
+        });
+        sw.title = `${UNIT_DEF[tid]?.name || tid} — add`;
+        entry.palette.appendChild(sw);
+      }
+    }
+  }
+
+  function startUnitsForLabel(label){
+    const lo = getStartLoadout();
+    const units = [...(lo.ground || [])];
+    const lower = (label || "").toLowerCase();
+    const hasAir = lower.includes("air");
+    const hasSea = lower.includes("ship") || lower.includes("sea");
+    if(hasAir) units.push(...(lo.air || []));
+    if(hasSea) units.push(...(lo.sea || []));
+    return units;
+  }
+
+  function applyGamemode(mode){
+    const prev = Game.gamemode || "NORMAL";
+    // Restore money values when leaving Money Madness
+    if(mode!=="MONEY" && prev==="MONEY" && Game.moneyBackup){
+      Game.startFunds = Game.moneyBackup.startFunds;
+      Game.cityIncome = Game.moneyBackup.cityIncome;
+      Game.baseIncome = Game.moneyBackup.baseIncome;
+      Game.moneyBackup = null;
+      syncIncomeInputs();
+    }
+
+    Game.gamemode = mode || "NORMAL";
+    if(mode==="NORMAL"){
+      resetSettingsToDefault();
+      Game.gamemode = "NORMAL";
+      renderGamemodeButtons();
+      return;
+    }
+    if(mode==="ROCKETS"){
+      const lo = getStartLoadout();
+      const total = (lo.ground?.length || 0) + (lo.air?.length || 0) + (lo.sea?.length || 0);
+      const count = Math.max(total, DEFAULT_START_LOADOUT.ground.length + DEFAULT_START_LOADOUT.air.length + DEFAULT_START_LOADOUT.sea.length);
+      Game.startLoadout = normalizeStartLoadout({
+        ground: Array.from({length:count}, ()=>"RKT"),
+        air: [],
+        sea: []
+      });
+      saveGameState();
+      renderStartLoadoutEditor();
+      renderMapPicker();
+      renderGamemodeButtons();
+      return;
+    }
+    if(mode==="SKY"){
+      const lo = getStartLoadout();
+      const total = (lo.ground?.length || 0) + (lo.air?.length || 0) + (lo.sea?.length || 0);
+      const count = Math.max(total, DEFAULT_START_LOADOUT.ground.length + DEFAULT_START_LOADOUT.air.length + DEFAULT_START_LOADOUT.sea.length);
+      Game.startLoadout = normalizeStartLoadout({
+        ground: [],
+        air: Array.from({length:count}, ()=>"FTR"),
+        sea: []
+      });
+      saveGameState();
+      renderStartLoadoutEditor();
+      renderMapPicker();
+      renderGamemodeButtons();
+      return;
+    }
+    if(mode==="MONEY"){
+      Game.moneyBackup = {
+        startFunds: Game.startFunds,
+        cityIncome: Game.cityIncome,
+        baseIncome: Game.baseIncome
+      };
+      Game.startFunds = 300000;
+      Game.cityIncome = 50000;
+      Game.baseIncome = 50000;
+      Game.startLoadout = normalizeStartLoadout(DEFAULT_START_LOADOUT);
+      renderStartLoadoutEditor();
+      renderMapPicker();
+      syncIncomeInputs();
+      saveGameState();
+      renderGamemodeButtons();
+      return;
+    }
+    if(mode==="SEA"){
+      const lo = getStartLoadout();
+      const total = (lo.ground?.length || 0) + (lo.air?.length || 0) + (lo.sea?.length || 0);
+      const count = Math.max(total, DEFAULT_START_LOADOUT.ground.length + DEFAULT_START_LOADOUT.air.length + DEFAULT_START_LOADOUT.sea.length);
+      Game.startLoadout = normalizeStartLoadout({
+        ground: [],
+        air: [],
+        sea: Array.from({length:count}, ()=>"BSH")
+      });
+      saveGameState();
+      renderStartLoadoutEditor();
+      renderMapPicker();
+      renderGamemodeButtons();
+      return;
+    }
+  }
+
+  function makeStartPreviewRow(playerId, mapLabel){
+    const row = document.createElement("div");
+    row.className = "startPreviewRow";
+    const pill = document.createElement("span");
+    pill.className = "pill";
+    pill.textContent = `P${playerId}`;
+    row.appendChild(pill);
+    const swatchRow = document.createElement("div");
+    swatchRow.className = "unitSwatchRow";
+    const units = startUnitsForLabel(mapLabel);
+    if(!units.length){
+      const none = document.createElement("span");
+      none.className = "muted";
+      none.style.fontSize = "12px";
+      none.textContent = "No starting troops";
+      swatchRow.appendChild(none);
+    } else {
+      for(const tid of units){
+        const sw = makeUnitSwatch(tid, playerId, 24);
+        swatchRow.appendChild(sw);
+      }
+    }
+    row.appendChild(swatchRow);
+    return row;
+  }
+
   function renderMapPicker(){
     if(!mapList) return;
+    renderGamemodeButtons();
+    const prevScroll = mapList.scrollTop || 0;
+    renderStartLoadoutEditor();
     initCustomGridFromText(Game.customMapText || DEFAULT_CUSTOM_MAP);
     mapList.innerHTML = "";
     renderCustomPalette();
@@ -3685,6 +4019,15 @@
         badgeWrap.appendChild(badge);
         meta.appendChild(badgeWrap);
       }
+      const startBox = document.createElement("div");
+      startBox.className = "startPreview";
+      const startLabel = document.createElement("div");
+      startLabel.className = "muted";
+      startLabel.textContent = "Starting troops";
+      startBox.appendChild(startLabel);
+      startBox.appendChild(makeStartPreviewRow(1, mapLabel));
+      startBox.appendChild(makeStartPreviewRow(2, mapLabel));
+      card.appendChild(startBox);
       const btnRow = document.createElement("div");
       btnRow.style.display = "flex";
       btnRow.style.gap = "8px";
@@ -3718,6 +4061,7 @@
       card.appendChild(btnRow);
       mapList.appendChild(card);
     }
+    mapList.scrollTop = prevScroll;
   }
 
   function openMapPicker(){
@@ -3725,6 +4069,20 @@
     closeMapSettings();
     syncIncomeInputs();
     if(mapModal) mapModal.style.display = "flex";
+  }
+
+  function resetSettingsToDefault(){
+    Game.startFunds = 5000;
+    Game.cityIncome = 1000;
+    Game.baseIncome = 0;
+    Game.startLoadout = cloneStartLoadout();
+    Game.gamemode = "NORMAL";
+    Game.moneyBackup = null;
+    syncIncomeInputs();
+    renderStartLoadoutEditor();
+    renderMapPicker();
+    renderGamemodeButtons();
+    saveGameState();
   }
 
   function setBotMode(mode){
@@ -3743,6 +4101,20 @@
     for(const [mode, btn] of Object.entries(modes)){
       if(!btn) continue;
       btn.classList.toggle("primary", Game.botMode===mode);
+    }
+  }
+
+  function renderGamemodeButtons(){
+    const modes = {
+      NORMAL: gmNormalBtn,
+      ROCKETS: gmRocketsBtn,
+      MONEY: gmMoneyBtn,
+      SKY: gmSkyBtn,
+      SEA: gmSeaBtn
+    };
+    for(const [mode, btn] of Object.entries(modes)){
+      if(!btn) continue;
+      btn.classList.toggle("primary", Game.gamemode===mode);
     }
   }
 
@@ -5281,6 +5653,11 @@
   if(botEasyBtn) botEasyBtn.addEventListener("click", ()=>setBotMode("EASY"));
   if(botMedBtn) botMedBtn.addEventListener("click", ()=>setBotMode("MED"));
   if(botHardBtn) botHardBtn.addEventListener("click", ()=>setBotMode("HARD"));
+  if(gmNormalBtn) gmNormalBtn.addEventListener("click", ()=>applyGamemode("NORMAL"));
+  if(gmRocketsBtn) gmRocketsBtn.addEventListener("click", ()=>applyGamemode("ROCKETS"));
+  if(gmMoneyBtn) gmMoneyBtn.addEventListener("click", ()=>applyGamemode("MONEY"));
+  if(gmSkyBtn) gmSkyBtn.addEventListener("click", ()=>applyGamemode("SKY"));
+  if(gmSeaBtn) gmSeaBtn.addEventListener("click", ()=>applyGamemode("SEA"));
   if(damagePreviewEl){
     // hide on mouse leave canvas or selection change handled elsewhere
   }
@@ -5351,6 +5728,7 @@
     initCustomGridFromText(DEFAULT_CUSTOM_MAP);
     renderCustomGrid();
   });
+  if(resetSettingsBtn) resetSettingsBtn.addEventListener("click", resetSettingsToDefault);
   if(p1TopAvatar){
     p1TopAvatar.addEventListener("click", ()=>openCOModal(1));
     p1TopAvatar.addEventListener("mouseenter", ()=>showTooltip(p1TopTooltip, p1TopAvatar));
