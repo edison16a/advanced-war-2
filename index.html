@@ -3265,6 +3265,11 @@
     Game.funds[Game.currentPlayer] += income;
     logLine(`${owningPlayer(Game.currentPlayer).name} receives $${income} funds (income).`, Game.currentPlayer);
 
+    const healed = healUnitsOnOwnedProperties(Game.currentPlayer, 2);
+    if(healed>0){
+      logLine(`${owningPlayer(Game.currentPlayer).name} heals ${healed} unit${healed===1?"":"s"} on owned cities/bases/HQ (+2 HP).`, Game.currentPlayer);
+    }
+
     resetUnitsForTurn(Game.currentPlayer);
     grantCOMeter(Game.currentPlayer, 10);
 
@@ -3732,6 +3737,21 @@
         u.hp = clamp(u.hp + amount, 0, u.def.maxHP);
       }
     }
+  }
+
+  // Heal only the current player's units standing on their own city/base/HQ tiles.
+  function healUnitsOnOwnedProperties(playerId, amount=2){
+    let healed = 0;
+    for(const u of Game.units){
+      if(u.owner!==playerId) continue;
+      const b = buildingAt(u.x, u.y);
+      if(!b || b.owner!==playerId) continue;
+      if(b.kindId!=="CITY" && b.kindId!=="BASE" && b.kindId!=="HQ") continue;
+      const before = u.hp;
+      u.hp = clamp(u.hp + amount, 0, u.def.maxHP);
+      if(u.hp!==before) healed += 1;
+    }
+    return healed;
   }
 
   function useCOPower(playerId, tier){
